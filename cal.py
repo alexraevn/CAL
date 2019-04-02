@@ -16,7 +16,7 @@ import os
 import numpy as np
 
 def do_astro_align(object_list, directory):
-	"""Align a series of frames to a reference frame via Astroalign"""
+	"""Align a series of frames to a reference frame via ASTROALIGN"""
 
 	# Sort object list
 	print("<STATUS:CAL> Sorting align list ...")
@@ -73,13 +73,29 @@ def do_cosmicray_detect():
 
 	return
 
-def do_dark_reduce():
-	"""Calibrate series of frames with a master dark frame"""
+def do_calibrate(object_list, master_dark, flatfield, directory):
+	"""Calibrate a series of object frames with a master dark and flatfield"""
 
-	return
+	for item in object_list:
 
-def do_flat_reduce():
-	"""Calibrate series of frames with a flatfield"""
+		# Check for pre-existing calibrated frame
+		if os.path.isfile(str(directory) + "/cal-" + str(item)):
+
+			print("<STATUS:CAL> Skipping calibrate on frame", item, "...")
+
+		else:
+
+			print("<STATUS:CAL> Reading", item, "data ...")
+			object_frame = ccdproc.fits_ccddata_reader(item, unit="adu")
+
+			print("<STATUS:CAL> Subtracting master dark from", item, "...")
+			object_min_dark = ccdproc.subtract_dark(object_frame, master_dark, data_exposure=object_frame.header["exposure"]*u.second, dark_exposure=master_dark.header["exposure"]*u.second, scale=True)
+
+			print("<STATUS:CAL> Dividing", item, "by flatfield ...")
+			cal_object_frame = ccdproc.flat_correct(object_min_dark, flatfield)
+
+			print("<STATUS:CAL> Saving frame", item, "...")
+			ccdproc.fits_ccddata_writer(cal_object_frame, str(directory) + "/cal-" + str(item))
 
 	return
 
