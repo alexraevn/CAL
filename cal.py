@@ -11,6 +11,7 @@
 
 from astropy import units as u
 from astropy.io import fits
+import astroalign as aa
 import ccdproc
 import os
 import numpy as np
@@ -29,7 +30,7 @@ def do_astro_align(object_list, directory):
 
 	# Read reference align frame data
 	print("<STATUS:CAL> Reading frame", object_list[0], "data ...")
-	target_data = reference_frame[0].data
+	reference_data = reference_frame[0].data
 
 	# Save reference align frame to align directory
 	if os.path.isfile(str(directory) + "/a-" + str(object_list[0])):
@@ -47,13 +48,13 @@ def do_astro_align(object_list, directory):
 
 		else:
 			print("<STATUS:CAL> Opening frame", object_list[i], "...")
-			reference_frame = fits.open(object_list[i])
+			target_frame = fits.open(object_list[i])
 
 			print("<STATUS:CAL> Reading frame", object_list[i], "data ...")
-			reference_data = reference_frame[0].data
+			target_data = target_frame[0].data
 
 			print("<STATUS:CAL> Aligning frame", object_list[i], "with", str(object_list[0]), "...")
-			aligned_data = aa.register(reference_data, target_data)
+			aligned_data = aa.register(target_data, reference_data)
 
 			print("<STATUS:CAL> Converting frame", object_list[i], "to FITS format ...")
 			aligned_frame = fits.PrimaryHDU(aligned_data)

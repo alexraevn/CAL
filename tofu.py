@@ -19,6 +19,9 @@ import numpy as np
 import shutil
 import time
 
+import psutil
+process = psutil.Process(os.getpid())
+
 start = time.time()
 
 print("<STATUS:TOFU> Reading configuration file ...")
@@ -95,7 +98,6 @@ for directory in tar_obj_dir:
 	os.chdir(directory)
 	print("<STATUS:TOFU> Changing to", directory, "as current working directory ...")
 
-	# Create sub-directories within object directory
 	raw_path = directory + "/raw"
 	cal_path = directory + "/cal"
 	align_path = directory + "/align"
@@ -118,7 +120,6 @@ for directory in tar_obj_dir:
 			else:
 				raise
 
-	# Create a list of object frames for calibration
 	tar_obj_list = []
 
 	for frame in glob.glob("*.fit"):
@@ -157,7 +158,6 @@ for directory in tar_obj_dir:
 			print("<STATUS:TOFU> Adding frame", frame, "to calibration list ...")
 			tar_obj_list.append(frame)
 
-	# Calibrate target frames
 	print("<STATUS:TOFU> Starting calibration on frames", tar_obj_list, "...")
 	cal.do_calibrate(tar_obj_list, tar_master_dark, tar_master_flat, cal_path)
 
@@ -169,6 +169,54 @@ for directory in tar_obj_dir:
 
 		except Exception as e:
 			print("<STATUS:TOFU> Not moving", frame, "-- type error:", e, "...")
+
+# Align object frames
+for directory in tar_obj_dir:
+
+	directory_read = directory + "/cal"
+	directory_write = directory + "/align"
+
+	os.chdir(directory_read)
+	print("<STATUS:TOFU> Changing to", directory_read, "as current working directory ...")
+
+	aligned_tar_list = []
+
+	for frame in glob.glob("cal-*"):
+
+		if "a-" in frame:
+			print("<STATUS:TOFU> Not adding frame", frame, "to align list ...")
+
+		else:
+			print("<STATUS:TOFU> Adding frame", frame, "to align list ...")
+			aligned_tar_list.append(frame)
+
+	print("<STATUS:TOFU> Starting align on frames", aligned_tar_list, "...")
+	cal.do_astro_align(aligned_tar_list, directory_write)
+
+# Stack object frames
+for directory in tar_obj_dir:
+
+	directory_read = directory + "/align"
+	directory_write = directory + "/stack"
+
+	os.chdir(directory_read)
+	print("<STATUS:TOFU> Changing to", directory_read, "as current working diretory ...")
+
+	tar_stack_list = []
+
+	if os.path.isfile(directory_write + "/stack.fit"):
+
+		print("<STATUS:TOFU> Skipping stack (already exists) ...")
+
+	else:
+
+		for frame in glob.glob("a-*"):
+
+			print("<STATUS:TOFU> Adding frame", frame, "to stack list ...")
+			tar_stack_list.append(frame)
+
+		print("<STATUS:TOFU> Starting stack on frames", tar_stack_list, "...")
+		cal.do_stack(tar_stack_list, directory_write)
 
 #
 # REFERENCE
@@ -232,7 +280,6 @@ for directory in ref_obj_dir:
 	os.chdir(directory)
 	print("<STATUS:TOFU> Changing to", directory, "as current working directory ...")
 
-	# Create sub-directories within object directory
 	raw_path = directory + "/raw"
 	cal_path = directory + "/cal"
 	align_path = directory + "/align"
@@ -255,7 +302,6 @@ for directory in ref_obj_dir:
 			else:
 				raise
 
-	# Create a list of object frames for calibration
 	ref_obj_list = []
 
 	for frame in glob.glob("*.fit"):
@@ -294,7 +340,6 @@ for directory in ref_obj_dir:
 			print("<STATUS:TOFU> Adding frame", frame, "to calibration list ...")
 			ref_obj_list.append(frame)
 
-	# Calibrate target frames
 	print("<STATUS:TOFU> Starting calibration on frames", ref_obj_list, "...")
 	cal.do_calibrate(ref_obj_list, ref_master_dark, ref_master_flat, cal_path)
 
@@ -307,6 +352,55 @@ for directory in ref_obj_dir:
 		except Exception as e:
 			print("<STATUS:TOFU> Not moving", frame, "-- type error:", e, "...")
 
+# Align object frames
+for directory in ref_obj_dir:
+
+	directory_read = directory + "/cal"
+	directory_write = directory + "/align"
+
+	os.chdir(directory_read)
+	print("<STATUS:TOFU> Changing to", directory_read, "as current working directory ...")
+
+	aligned_ref_list = []
+
+	for frame in glob.glob("cal-*"):
+
+		if "a-" in frame:
+			print("<STATUS:TOFU> Not adding frame", frame, "to align list ...")
+
+		else:
+			print("<STATUS:TOFU> Adding frame", frame, "to align list ...")
+			aligned_ref_list.append(frame)
+
+	print("<STATUS:TOFU> Starting align on frames", aligned_ref_list, "...")
+	cal.do_astro_align(aligned_ref_list, directory_write)
+
+# Stack object frames
+for directory in ref_obj_dir:
+
+	directory_read = directory + "/align"
+	directory_write = directory + "/stack"
+
+	os.chdir(directory_read)
+	print("<STATUS:TOFU> Changing to", directory_read, "as current working diretory ...")
+
+	ref_stack_list = []
+
+	if os.path.isfile(directory_write + "/stack.fit"):
+
+		print("<STATUS:TOFU> Skipping stack (already exists) ...")
+
+	else:
+
+		for frame in glob.glob("a-*"):
+
+			print("<STATUS:TOFU> Adding frame", frame, "to stack list ...")
+			ref_stack_list.append(frame)
+
+		print("<STATUS:TOFU> Starting stack on frames", ref_stack_list, "...")
+		cal.do_stack(ref_stack_list, directory_write)
+
 end = time.time()
 print()
 print(str(end - start) + " seconds to complete.")
+print(process.memory_info().rss)
