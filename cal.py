@@ -167,23 +167,13 @@ def do_galaxy_sub():
 
 	return
 
-def do_argparse():
-
-	parser = argparse.ArgumentParser()
-	parser.add_argument("-i", default=os.getcwd(), metavar="DIR", dest="input_path")
-	args = parser.parse_args()
-
-	input_dir = args.input_path
-
-	return input_dir
-
 def do_tofu_nav(input_dir):
 	"""Define location of directories related to TOFU script"""
 
 	# Target and reference subdirectories
 	tar_dir = str(input_dir) + "Target"
-	print("<STATUS:CAL> Target directory:", tar_dir, "...")
 	print()
+	print("<STATUS:CAL> Target directory:", tar_dir, "...")
 
 	ref_dir = str(input_dir) + "Reference"
 	print("<STATUS:CAL> Reference directory:", ref_dir, "...")
@@ -206,10 +196,9 @@ def do_tofu_nav(input_dir):
 			else:
 				tar_obj_dir.append(os.path.join(tar_dir, sub_dir))
 
+	print()
 	print("<STATUS:CAL> Target object directories:", tar_obj_dir, "...")
-	print()
 	print("<STATUS:CAL> Target dark directory:", tar_dark_dir, "...")
-	print()
 	print("<STATUS:CAL> Target flat directory:", tar_flat_dir, "...")
 	print()
 
@@ -227,10 +216,9 @@ def do_tofu_nav(input_dir):
 			else:
 				ref_obj_dir.append(os.path.join(ref_dir, sub_dir))
 
+	print()
 	print("<STATUS:CAL> Reference object directories:", ref_obj_dir, "...")
-	print()
 	print("<STATUS:CAL> Reference dark directory:", ref_dark_dir, "...")
-	print()
 	print("<STATUS:CAL> Reference flat directory:", ref_flat_dir, "...")
 	print()
 
