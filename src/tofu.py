@@ -19,9 +19,6 @@ import numpy as np
 import shutil
 import time
 
-import psutil
-process = psutil.Process(os.getpid())
-
 start = time.time()
 
 print("<STATUS:TOFU> Reading configuration file ...")
@@ -403,4 +400,3 @@ for directory in ref_obj_dir:
 end = time.time()
 print()
 print(str(end - start) + " seconds to complete.")
-print(process.memory_info().rss)

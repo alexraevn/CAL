@@ -4,7 +4,7 @@
 # Richard Camuccio
 # 11 Mar 2019
 #
-# Last update: 1 Apr 2019
+# Last update: 27 Apr 2019
 #
 # CTMO Analysis Library
 #
@@ -13,8 +13,13 @@ from astropy import units as u
 from astropy.io import fits
 import astroalign as aa
 import ccdproc
+import configparser
 import os
 import numpy as np
+
+print("<STATUS:CAL> Reading configuration file ...")
+config = configparser.ConfigParser()
+config.read("/home/rcamuccio/Documents/CAL/config.ini")
 
 def do_astro_align(object_list, directory):
 	"""Align a series of frames to a reference frame via ASTROALIGN"""
@@ -108,16 +113,46 @@ def do_dark_master(dark_list):
 
 	return master_dark
 
-def do_flat_master(flat_list, master_dark):
+def do_flat_master(flat_list, master_dark, input_dir, output_dir):
 	"""Create a normalized flatfield frame"""
 
 	print("<STATUS:CAL> Combining flats ...")
-	combined_flat = ccdproc.combine(flat_list, method="median", unit="adu")
+
+	if config["main"]["flat_combine"] == "median":
+
+		combined_flat = ccdproc.combine(flat_list, method="median", unit="adu")
+
+	elif config["main"]["flat_combine"] == "mean":
+
+		combined_flat = ccdproc.combine(flat_list, method="mean", unit="adu")
 
 	print("<STATUS:CAL> Subtracting dark from combined flat ...")
 	master_flat = ccdproc.subtract_dark(combined_flat, master_dark, data_exposure=combined_flat.header["exposure"]*u.second, dark_exposure=master_dark.header["exposure"]*u.second, scale=True)
 
-	return master_flat
+	print("<STATUS:CAL> Reading master flat data ...")
+	master_flat_data = np.asarray(master_flat)
+
+	print("<STATUS:CAL> Normalizing master flat ... ")
+
+	if config["main"]["flat_normalization"] == "median":
+
+		flatfield_data = master_flat_data / np.median(master_flat_data)
+
+	elif config["main"]["flat_normalization"] == "mean":
+
+		flatfield_data = master_flat_data / np.mean(master_flat_data)
+
+	flatfield = fits.PrimaryHDU(flatfield_data)
+
+	if config["main"]["write_flat"] == "yes":
+
+		flatfield.writeto(directory + "/flatfield.fit")
+
+	elif config["main"]["write_flat"] == "no":
+
+		pass
+
+	return flatfield, flatfield_data
 
 def do_sextractor():
 	"""Perform source extraction on series of frames via SExtractor"""
