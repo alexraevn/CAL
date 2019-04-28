@@ -22,7 +22,7 @@ print("<STATUS> Reading configuration file ...")
 config = configparser.ConfigParser()
 config.read("/home/rcamuccio/Documents/CAL/config.ini")
 
-def do_calibrate(object_list, master_dark, flatfield, obj_dir, dark_dir, flat_dir, output_dir):
+def do_calibrate(object_list, master_dark, flatfield, object_dir, dark_dir, flat_dir, output_dir):
 	"""Calibrate a series of object frames with a master dark and flatfield"""
 
 	for item in object_list:
@@ -53,20 +53,20 @@ if __name__ == "__main__":
 
 	start = time.time()
 
-	obj_dir = config["do_calibrate"]["input_dir_obj"]
+	object_dir = config["do_calibrate"]["input_dir_obj"]
 	dark_dir = config["do_calibrate"]["input_dir_dark"]
 	flat_dir = config["do_calibrate"]["input_dir_flat"]
 	output_dir = config["do_calibrate"]["output_dir"]
 	object_list = []
 
-	if not os.path.exists(obj_dir + "/cal"):
-   		os.makedirs(obj_dir + "/cal")
+	if not os.path.exists(object_dir + "/cal"):
+   		os.makedirs(object_dir + "/cal")
 
 	master_dark = ccdproc.fits_ccddata_reader(dark_dir + "/master-dark.fit")
 	flatfield = ccdproc.fits_ccddata_reader(flat_dir + "/flatfield.fit")
 
-	os.chdir(obj_dir)
-	print("<STATUS> Changing to", obj_dir, "as current working directory ...")
+	os.chdir(object_dir)
+	print("<STATUS> Changing to", object_dir, "as current working directory ...")
 
 	for frame in glob.glob("*.fit"):
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 		object_list.append(frame)
 
 	print("<STATUS> Running [do_calibrate] ...")
-	do_calibrate(object_list, master_dark, flatfield, obj_dir, dark_dir, flat_dir, output_dir)
+	do_calibrate(object_list, master_dark, flatfield, object_dir, dark_dir, flat_dir, output_dir)
 
 	end = time.time()
 	print(str(end - start) + " seconds to complete.")
