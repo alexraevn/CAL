@@ -27,18 +27,18 @@ def do_dark_master(dark_list, input_dir, output_dir):
 
 	print("<STATUS> Combining darks ...")
 
-	if config["main"]["dark_combine"] == "median":
+	if config["dark"]["dark_combine"] == "median":
 		master_dark = ccdproc.combine(dark_list, method="median", unit="adu")
 
-	elif config["main"]["dark_combine"] == "mean":
+	elif config["dark"]["dark_combine"] == "mean":
 		master_dark = ccdproc.combine(dark_list, method="mean", unit="adu")
 
-	if config["main"]["write_dark"] == "yes":
+	if config["dark"]["write_dark"] == "yes":
 
 		print("<STATUS> Writing master dark to output directory ...")
 		ccdproc.fits_ccddata_writer(master_dark, output_dir + "/master-dark.fit")
 
-	elif config["main"]["write_dark"] == "no":
+	elif config["dark"]["write_dark"] == "no":
 		pass
 
 	return master_dark
@@ -47,8 +47,8 @@ if __name__ == "__main__":
 
 	start = time.time()
 
-	input_dir = "/home/rcamuccio/Documents/CAL/data/test_do_dark_master"
-	output_dir = "/home/rcamuccio/Documents/CAL/data/test_do_dark_master"
+	input_dir = config["dark"]["input_dir"]
+	output_dir = config["dark"]["output_dir"]
 	dark_list = []
 
 	if os.path.isfile(output_dir + "/master-dark.fit"):
