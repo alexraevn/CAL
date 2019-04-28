@@ -27,10 +27,10 @@ def do_flat_master(flat_list, master_dark, dark_dir, flat_dir, output_dir):
 
 	print("<STATUS> Combining flats ...")
 
-	if config["flat"]["flat_combine"] == "median":
+	if config["do_flat_master"]["flat_combine"] == "median":
 		combined_flat = ccdproc.combine(flat_list, method="median", unit="adu")
 
-	elif config["flat"]["flat_combine"] == "mean":
+	elif config["do_flat_master"]["flat_combine"] == "mean":
 		combined_flat = ccdproc.combine(flat_list, method="mean", unit="adu")
 
 	print("<STATUS> Subtracting dark from combined flat ...")
@@ -41,16 +41,16 @@ def do_flat_master(flat_list, master_dark, dark_dir, flat_dir, output_dir):
 
 	print("<STATUS> Normalizing master flat ... ")
 
-	if config["flat"]["flat_normalization"] == "median":
+	if config["do_flat_master"]["flat_normalization"] == "median":
 		flatfield_data = master_flat_data / np.median(master_flat_data)
 
-	elif config["flat"]["flat_normalization"] == "mean":
+	elif config["do_flat_master"]["flat_normalization"] == "mean":
 		flatfield_data = master_flat_data / np.mean(master_flat_data)
 
 	print("<STATUS> Converting flatfield data to CCDData ...")
 	flatfield = ccdproc.CCDData(flatfield_data, unit="adu")
 
-	if config["flat"]["write_flat"] == "yes":
+	if config["do_flat_master"]["write_flat"] == "yes":
 
 		print("<STATUS> Writing flatfield to output directory ...")
 		ccdproc.fits_ccddata_writer(flatfield, output_dir + "/flatfield.fit")
@@ -64,9 +64,9 @@ if __name__ == "__main__":
 
 	start = time.time()
 
-	dark_dir = config["flat"]["input_dir_dark"]
-	flat_dir = config["flat"]["input_dir_flat"]
-	output_dir = config["flat"]["output_dir"]
+	dark_dir = config["do_flat_master"]["input_dir_dark"]
+	flat_dir = config["do_flat_master"]["input_dir_flat"]
+	output_dir = config["do_flat_master"]["output_dir"]
 	flat_list = []
 
 	if os.path.isfile(output_dir + "/flatfield.fit"):
