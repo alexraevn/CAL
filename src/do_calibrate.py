@@ -59,8 +59,8 @@ if __name__ == "__main__":
 	output_dir = config["do_calibrate"]["output_dir"]
 	object_list = []
 
-	if not os.path.exists(object_dir + "/cal"):
-   		os.makedirs(object_dir + "/cal")
+	if not os.path.exists(output_dir):
+   		os.makedirs(output_dir)
 
 	master_dark = ccdproc.fits_ccddata_reader(dark_dir + "/master-dark.fit")
 	flatfield = ccdproc.fits_ccddata_reader(flat_dir + "/flatfield.fit")

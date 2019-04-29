@@ -38,8 +38,10 @@ def do_stack(object_list, input_dir, output_dir):
 	print("<STATUS> Converting stack data to FITS format ...")
 	fits_stack = fits.PrimaryHDU(stack)
 
-	print("<STATUS> Saving stack to directory", output_dir, "...")
-	fits_stack.writeto(output_dir + "/stack.fit", overwrite=True)
+	if config["do_stack"]["write_stack"] == "yes":
+
+		print("<STATUS> Saving stack to directory", output_dir, "...")
+		fits_stack.writeto(output_dir + "/stack.fit", overwrite=True)
 
 	return stack
 
