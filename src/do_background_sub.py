@@ -13,8 +13,10 @@ from astropy import units as u
 from astropy.io import fits
 from astropy.stats import biweight_location
 from astropy.stats import mad_std
+from astropy.stats import SigmaClip
 from astropy.stats import sigma_clipped_stats
-from photutils import make_source_mask
+from photutils import Background2D
+from photutils import MedianBackground
 import configparser
 import glob
 import numpy as np
@@ -46,6 +48,13 @@ def do_background_sub(object_list, input_dir, output_dir):
 			print("<STATUS> Calculating mean absolute deviation of", item, "...")
 			mean_abs_dev = mad_std(frame_data)
 
+			print()
+			print("     Statistics for", item)
+			print("     Median:", "%.4f" % median, "ADU")
+			print("     Biweight location:", "%.4f" % bw_loc, "ADU")
+			print("     Mean absolute deviation:", "%.4f" % mean_abs_dev, "ADU")
+			print()
+
 			print("<STATUS> Subtracting median from array ...")
 			bkgsub_data = frame_data - median
 
@@ -65,16 +74,28 @@ def do_background_sub(object_list, input_dir, output_dir):
 			print("<STATUS> Reading frame", item, "data ...")
 			frame_data = frame[0].data
 
-			mean, median, std = sigma_clipped_stats(frame_data, sigma=3.0)
+			print("<STATUS> Calculating statistics of", item, "...")
 
+			mean, median, std = sigma_clipped_stats(frame_data, sigma=5.0)
+									
 			print()
-			print("Sigma-clipped background statistics for", item)
-			print("Mean:", mean, "ADU")
-			print("Median:", median, "ADU")
-			print("STDEV:", std, "ADU")
+			print("     Sigma-clipped statistics for", item)
+			print("     Sigma: 5.0")
+			print("     Mean:", "%.3f" % mean, "ADU")
+			print("     Median:", "%.3f" % median, "ADU")
+			print("     Standard deviation:", "%.3f" % std, "ADU")
 			print()
 
-	elif config["do_background_sub"]["method"] == "mask":
+			print("<STATUS> Subtracting median from array ...")
+			bkgsub_data = frame_data - median
+
+			print("<STATUS> Converting background-subtracted array to FITS ...")
+			bkgsub_frame = fits.PrimaryHDU(bkgsub_data)
+
+			print("<STATUS> Saving FITS to directory", output_dir, "...")
+			bkgsub_frame.writeto(output_dir + "/sigma-bkgsub-" + str(item), overwrite=True)
+
+	elif config["do_background_sub"]["method"] == "2d":
 
 		for item in object_list:
 
@@ -84,16 +105,25 @@ def do_background_sub(object_list, input_dir, output_dir):
 			print("<STATUS> Reading frame", item, "data ...")
 			frame_data = frame[0].data
 
-			mask = make_source_mask(frame_data, snr=2, npixels=20, dilate_size=100)
-			mean, median, std = sigma_clipped_stats(frame_data, sigma=3.0, mask=mask)
+			sigma_clip = SigmaClip(sigma=5.0)
+			bkg_estimator = MedianBackground()
+			bkg = Background2D(frame_data, (50, 50), filter_size=(3, 3), sigma_clip=sigma_clip, bkg_estimator=bkg_estimator)
 
 			print()
-			print("Source-masked background statistics for", item)
-			print("Mean:", mean, "ADU")
-			print("Median:", median, "ADU")
-			print("STDEV:", std, "ADU")
+			print("     Frame:", item)
+			print("     Sigma: 5.0")
+			print("     Median:", "%.3f" % bkg.background_median)
+			print("     RMS:", "%.3f" % bkg.background_rms_median)
 			print()
 
+			print("<STATUS> Subtracting background from array ...")
+			bkgsub_data = frame_data - bkg.background
+
+			print("<STATUS> Converting background-subtracted array to FITS ...")
+			bkgsub_frame = fits.PrimaryHDU(bkgsub_data)
+
+			print("<STATUS> Saving FITS to directory", output_dir, "...")
+			bkgsub_frame.writeto(output_dir + "/2d-bkgsub-" + str(item), overwrite=True)
 	else:
 
 		print("void")
