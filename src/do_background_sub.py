@@ -16,6 +16,7 @@ from astropy.stats import mad_std
 from astropy.stats import SigmaClip
 from astropy.stats import sigma_clipped_stats
 from photutils import Background2D
+from photutils import make_source_mask
 from photutils import MedianBackground
 import configparser
 import glob
@@ -75,7 +76,6 @@ def do_background_sub(object_list, input_dir, output_dir):
 			frame_data = frame[0].data
 
 			print("<STATUS> Calculating statistics of", item, "...")
-
 			mean, median, std = sigma_clipped_stats(frame_data, sigma=5.0)
 									
 			print()
@@ -94,6 +94,45 @@ def do_background_sub(object_list, input_dir, output_dir):
 
 			print("<STATUS> Saving FITS to directory", output_dir, "...")
 			bkgsub_frame.writeto(output_dir + "/sigma-bkgsub-" + str(item), overwrite=True)
+
+	elif config["do_background_sub"]["method"] == "mask":
+
+		for item in object_list:
+
+			print("<STATUS> Opening frame", item, "...")
+			frame = fits.open(item)
+
+			print("<STATUS> Reading frame", item, "data ...")
+			frame_data = frame[0].data
+
+			print("<STATUS> Making source mask ...")
+			mask = make_source_mask(frame_data, snr=2, npixels=5, dilate_size=11)
+
+			print()
+			print("     SNR: 2")
+			print("     Initial pixels: 5x5")
+			print("     Dilate size = 11x11")
+			print()
+
+			print("<STATUS> Calculating statistics of", item, "...")
+			mean, median, std = sigma_clipped_stats(frame_data, sigma=3.0, mask=mask)
+
+			print()
+			print("     Source-masked statistics for", item)
+			print("     Sigma: 3.0")
+			print("     Mean:", "%.3f" % mean, "ADU")
+			print("     Median:", "%.3f" % median, "ADU")
+			print("     Standard deviation:", "%.3f" % std, "ADU")
+			print()
+
+			print("<STATUS> Subtracting median from array ...")
+			bkgsub_data = frame_data - median
+
+			print("<STATUS> Converting background-subtracted array to FITS ...")
+			bkgsub_frame = fits.PrimaryHDU(bkgsub_data)
+
+			print("<STATUS> Saving FITS to directory", output_dir, "...")
+			bkgsub_frame.writeto(output_dir + "/mask-bkgsub-" + str(item), overwrite=True)
 
 	elif config["do_background_sub"]["method"] == "2d":
 
