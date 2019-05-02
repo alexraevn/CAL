@@ -146,20 +146,21 @@ if __name__ == "__main__":
 	object_list = []
 
 	if not os.path.exists(output_dir):
+
    		os.makedirs(output_dir)
 
-	else:
+	os.chdir(input_dir)
+	print("<STATUS> Changing to", input_dir, "as current working directory ...")
 
-		os.chdir(input_dir)
-		print("<STATUS> Changing to", input_dir, "as current working directory ...")
+	for frame in glob.glob("*.fit"):
 
-		for frame in glob.glob("*.fit"):
+		print("<STATUS> Adding", frame, "to align list ...")
+		object_list.append(frame)
 
-			print("<STATUS> Adding", frame, "to align list ...")
-			object_list.append(frame)
-
-		print("<STATUS> Running [do_align] ...")
-		do_align(object_list, input_dir, output_dir)
+	print("<STATUS> Running [do_align] ...")
+	do_align(object_list, input_dir, output_dir)
 
 	end = time.time()
-	print(str(end - start) + " seconds to complete.")
+	time = end - start
+	print()
+	print("%.2f" % time, "seconds to complete.")

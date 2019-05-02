@@ -77,4 +77,6 @@ if __name__ == "__main__":
 	do_calibrate(object_list, master_dark, flatfield, object_dir, dark_dir, flat_dir, output_dir)
 
 	end = time.time()
-	print(str(end - start) + " seconds to complete.")
+	time = end - start
+	print()
+	print("%.2f" % time, "seconds to complete.")

@@ -30,6 +30,7 @@ def do_wcs_attach(object_list, input_dir, output_dir):
 		file_axy = file + ".axy"
 		file_corr = file + ".corr"
 		file_match = file + ".match"
+		file_new = file + ".new"
 		file_rdls = file + ".rdls"
 		file_solved = file + ".solved"
 		file_wcs = file + ".wcs"
@@ -47,6 +48,11 @@ def do_wcs_attach(object_list, input_dir, output_dir):
 		subprocess.run(["rm", file_wcs])
 		subprocess.run(["rm", file_xyls])
 
+		print("<STATUS> Moving solved fields to output directory", output_dir)
+		print(file_new)
+		print(output_dir + str("/wcs-") + file + ".fit")
+		subprocess.run(["mv", file_new, output_dir + str("/wcs-") + file + ".fit"])
+
 	return
 
 if __name__ == "__main__":
@@ -56,6 +62,10 @@ if __name__ == "__main__":
 	input_dir = config["do_wcs_attach"]["input_dir"]
 	output_dir = config["do_wcs_attach"]["output_dir"]
 	object_list = []
+
+	if not os.path.exists(output_dir):
+
+		os.makedirs(output_dir)
 
 	os.chdir(input_dir)
 	print("<STATUS> Changing to", input_dir, "as current working directory ...")
@@ -71,4 +81,4 @@ if __name__ == "__main__":
 	end = time.time()
 	time = end - start
 	print()
-	print("%.3f" % time, "seconds to complete.")
+	print("%.2f" % time, "seconds to complete.")

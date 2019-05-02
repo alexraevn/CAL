@@ -72,4 +72,6 @@ if __name__ == "__main__":
 		stack = do_stack(object_list, input_dir, output_dir)
 
 	end = time.time()
-	print(str(end - start) + " seconds to complete.")
+	time = end - start
+	print()
+	print("%.2f" % time, "seconds to complete.")
