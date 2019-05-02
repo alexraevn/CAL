@@ -4,7 +4,7 @@
 # Richard Camuccio
 # 28 Apr 2019
 #
-# Last update: 28 Apr 2019
+# Last update: 30 Apr 2019
 #
 # Function: do_background_sub (CAL)
 #
@@ -51,9 +51,9 @@ def do_background_sub(object_list, input_dir, output_dir):
 
 			print()
 			print("     Statistics for", item)
-			print("     Median:", "%.4f" % median, "ADU")
-			print("     Biweight location:", "%.4f" % bw_loc, "ADU")
-			print("     Mean absolute deviation:", "%.4f" % mean_abs_dev, "ADU")
+			print("     Median:", "%.3f" % median, "ADU")
+			print("     Biweight location:", "%.3f" % bw_loc, "ADU")
+			print("     Mean absolute deviation:", "%.3f" % mean_abs_dev, "ADU")
 			print()
 
 			print("<STATUS> Subtracting median from array ...")
@@ -106,13 +106,7 @@ def do_background_sub(object_list, input_dir, output_dir):
 			frame_data = frame[0].data
 
 			print("<STATUS> Making source mask ...")
-			mask = make_source_mask(frame_data, snr=2, npixels=5, dilate_size=11)
-
-			print()
-			print("     SNR: 2")
-			print("     Initial pixels: 5x5")
-			print("     Dilate size = 11x11")
-			print()
+			mask = make_source_mask(frame_data, snr=2, npixels=5, dilate_size=50)
 
 			print("<STATUS> Calculating statistics of", item, "...")
 			mean, median, std = sigma_clipped_stats(frame_data, sigma=3.0, mask=mask)
