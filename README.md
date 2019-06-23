@@ -4,13 +4,13 @@ The CTMO analysis library (CAL) is a collection of functions used for developing
 
 ***
 
-### Installation
+## Installation
 
 To install use pip from the directory containing `setup.py`.
 
 	$ pip install .
 
-### Usage
+## Usage
 
 ***
 
@@ -27,6 +27,21 @@ The function library currently includes
 	[do_source_extract]
 	[do_stack]
 	[do_wcs_attach]
+
+### Example: [do_dark_master]
+
+To use the function [do_dark_master], import the module
+
+>>> import do_dark_master as ddm
+>>> ddm.do_dark_master(dark_list, input_dir, output_dir)
+
+where, for example, `dark_list = ["dark-001.fit", "dark-002.fit", ...]`, `input_dir = "/home/username/Documents"`, and `output_dir = "/home/username/Downloads"`.
+
+To use as a script, execute from the command line
+
+	$ python3 do_dark_master.py
+
+where the input and output directories are read from the `config.ini` and the dark list is populated by assuming the specified input diretory only contains a series of dark frames.
 
 ***
 
@@ -57,3 +72,36 @@ Last update: 23 Jun 2019
 Richard Camuccio
 
 richard.camuccio01@utrgv.edu
+
+
+``
+root_path
+    |--- bias
+    |    |--- bias-001.fit
+    |    |--- bias-002.fit
+    |    |--- ...
+    |
+    |--- dark
+    |    |--- dark-001.fit
+    |    |--- dark-002.fit
+    |
+    |--- flat
+    |    |--- flat_half
+    |         |--- flat_half-001.fit
+    |         |--- flat_half-002.fit
+    |         |--- ...
+    |    |--- flat_linear
+    |         |--- 0_1
+    |              |--- flat-001_0_1.fit
+    |              |--- flat-002_0_1.fit
+    |         |--- 0_2
+    |              |--- flat-001_0_2.fit
+    |              |--- flat-002_0_2.fit
+    |         |--- ...
+    |         |--- 1_0
+    |              |--- ...
+    |         |--- 2_0
+    |         |--- 10_0
+    |         |--- 20_0
+    |         |--- ...
+```
