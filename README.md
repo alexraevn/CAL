@@ -74,34 +74,93 @@ Richard Camuccio
 richard.camuccio01@utrgv.edu
 
 
-``
-root_path
-    |--- bias
-    |    |--- bias-001.fit
-    |    |--- bias-002.fit
+```
+[root_path]
+    |--- [dark]
+    |    |--- [int_1]
+    |    |    |--- {dark-001.fit
+    |    |    |--- dark-002.fit
+    |    |    |--- ...
+    |    |    |+++ master-dark.fit
+    |    |
+    |    |--- [int_2]
+    |    |    |--- dark-001.fit
+    |    |    |--- dark-002.fit
+    |    |    |--- ...
+    |    |    |+++ master-dark.fit
+    |    |
+    |    |--- ...
+    ]    |
+    |--- [flat]
+    |    |--- [filter_1]
+    |    |    |--- flat-001.fit
+    |    |    |--- flat-002.fit
+    |    |    |--- ...
+    |    |    |+++ flatfield.fit
+    |    |
+    |    |--- [filter_2]
+    |    |    |--- flat-001.fit
+    |    |    |--- flat-002.fit
+    |    |    |--- ...
+    |    |    |+++ flatfield.fit
+    |    |
     |    |--- ...
     |
-    |--- dark
-    |    |--- dark-001.fit
-    |    |--- dark-002.fit
+    |--- [object_1]
+    |    |--- [filter_1]
+    |    |    |--- [raw]
+    |    |    |    |--- object_1-001.fit
+    |    |    |    |--- object_1-002.fit
+    |    |    |    |--- ...
+    |    |    |
+    |    |    |+++ [cal]
+    |    |    |    |+++ cal-object_1-001.fit
+    |    |    |    |+++ cal-object_1-002.fit
+    |    |    |    |+++ ...
+    |    |    |
+    |    |    |+++ [reject]
+    |    |    |    |+++ ...
+    |    |    |
+    |    |    |+++ [wcs]
+    |    |    |    |+++ wcs-object_1-001.fit
+    |    |    |    |+++ wcs-object_1-002.fit
+    |    |    |    |+++ ...
+    |    |    |
+    |    |    |+++ [align]
+    |    |    |    |+++ a-object_1-001.fit
+    |    |    |    |+++ a-object_1-002.fit
+    |    |    |    |+++ ...
+    |    |    |
+    |    |    |+++ stack.fit
+    |    |
+    |    |--- [filter_2]
+    |    |    |--- [raw]
+    |    |    |    |--- object_1-001.fit
+    |    |    |    |--- object_1-002.fit
+    |    |    |    |--- ...
+    |    |    |
+    |    |    |+++ [cal]
+    |    |    |    |+++ cal-object_1-001.fit
+    |    |    |    |+++ cal-object_1-002.fit
+    |    |    |    |+++ ...
+    |    |    |
+    |    |    |+++ [reject]
+    |    |    |    |+++ ...
+    |    |    |
+    |    |    |+++ [wcs]
+    |    |    |    |+++ wcs-object_1-001.fit
+    |    |    |    |+++ wcs-object_1-002.fit
+    |    |    |    |+++ ...
+    |    |    |
+    |    |    |+++ [align]
+    |    |    |    |+++ a-object_1-001.fit
+    |    |    |    |+++ a-object_1-002.fit
+    |    |    |    |+++ ...
+    |    |    |
+    |    |    |+++ stack.fit
     |
-    |--- flat
-    |    |--- flat_half
-    |         |--- flat_half-001.fit
-    |         |--- flat_half-002.fit
-    |         |--- ...
-    |    |--- flat_linear
-    |         |--- 0_1
-    |              |--- flat-001_0_1.fit
-    |              |--- flat-002_0_1.fit
-    |         |--- 0_2
-    |              |--- flat-001_0_2.fit
-    |              |--- flat-002_0_2.fit
-    |         |--- ...
-    |         |--- 1_0
-    |              |--- ...
-    |         |--- 2_0
-    |         |--- 10_0
-    |         |--- 20_0
-    |         |--- ...
+    |--- [object_2]
+    |    |--- ...
+    |
+    |--- ...
 ```
