@@ -1,7 +1,3 @@
-[![Build Status](https://travis-ci.org/rcamuccio/simplemath.svg?branch=master)](https://travis-ci.org/rcamuccio/simplemath)
-
-[![codecov](https://codecov.io/gh/rcamuccio/simplemath/branch/master/graph/badge.svg)](https://codecov.io/gh/rcamuccio/simplemath)
-
 # CAL
 
 The CTMO analysis library (CAL) is a collection of functions used for developing astronomical data anaylsis pipelines for the Cristina Torres Memorial Observatory. The function library is written primarily in Python. The library includes a set of prepared scripts for specific data analysis situations.
