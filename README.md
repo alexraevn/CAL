@@ -32,8 +32,8 @@ The function library currently includes
 
 To use the function [do_dark_master], import the module
 
->>> import do_dark_master as ddm
->>> ddm.do_dark_master(dark_list, input_dir, output_dir)
+	>>> import do_dark_master as ddm
+	>>> ddm.do_dark_master(dark_list, input_dir, output_dir)
 
 where, for example, `dark_list = ["dark-001.fit", "dark-002.fit", ...]`, `input_dir = "/home/username/Documents"`, and `output_dir = "/home/username/Downloads"`.
 
