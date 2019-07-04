@@ -10,9 +10,9 @@ To install use pip from the directory containing `setup.py`.
 
 	$ pip install .
 
-## Usage
-
 ***
+
+## Usage
 
 The function library currently includes
 
