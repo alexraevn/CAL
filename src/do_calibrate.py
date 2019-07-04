@@ -91,10 +91,16 @@ if __name__ == "__main__":
 			print(" [CAL]: Adding", frame, "to calibration list ...")
 			object_list.append(frame)
 
+	print()
 	print(" [CAL]: Running [do_calibrate] ...")
+	print()
+
 	do_calibrate(object_list, master_dark, flatfield, output_dir)
+
+	print()
+	print(" [CAL]: Ending [do_calibrate] ...")
+	print()
 
 	end = time.time()
 	time = end - start
-	print()
-	print(" [CAL]: Script [do_calibrate] completed in", "%.2f" % time, "s")
+	print(" End of script.", "%.2f" % time, "seconds to complete.")

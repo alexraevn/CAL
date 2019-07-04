@@ -80,31 +80,41 @@ def do_read(object_list, output_dir):
 
 if __name__ == "__main__":
 
+	print(" [CAL]: Running CAL ...")
+	print()
+	print(" [CAL]: Running [do_read] as script ...")
 	start = time.time()
 
 	print(" [CAL]: Reading configuration file ...")
 	config = configparser.ConfigParser()
 	config.read("/home/rcamuccio/Documents/CAL//config/config.ini")
 
+	print(" [CAL]: Parsing directory paths ...")
 	input_dir = config["do_read"]["input_dir"]
 	output_dir = config["do_read"]["output_dir"]
+
+	print(" [CAL]: Changing to", input_dir, "as current working directory ...")
+	os.chdir(input_dir)
+
 	object_list = []
 
-	os.chdir(input_dir)
-	print(" [CAL]: Changing to", input_dir, "as current working directory ...")
-
 	for frame in glob.glob("*.fit"):
-
 		print(" [CAL]: Adding", frame, "to read list ...")
 		object_list.append(frame)
 
 	print(" [CAL]: Sorting object list ...")
 	object_list = sorted(object_list)
 
+	print()
 	print(" [CAL]: Running [do_read] ...")
+	print()
+
 	do_read(object_list, output_dir)
+
+	print()
+	print(" [CAL]: Ending [do_read] ...")
+	print()
 
 	end = time.time()
 	time = end - start
-	print()
-	print(" [CAL]: Script [do_read] completed in", "%.2f" % time, "s")
+	print(" End of script.", "%.2f" % time, "seconds to complete.")

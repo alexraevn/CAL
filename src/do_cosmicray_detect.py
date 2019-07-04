@@ -84,10 +84,16 @@ if __name__ == "__main__":
 			print(" [CAL]: Adding", frame, "to detection list ...")
 			object_list.append(frame)
 
+	print()
 	print(" [CAL]: Running [do_cosmicray_detect] ...")
+	print()
+
 	do_cosmicray_detect(object_list, output_dir)
+
+	print()
+	print(" [CAL]: Ending [do_cosmicray_detect] ...")
+	print()
 
 	end = time.time()
 	time = end - start
-	print()
-	print(" [CAL]: Script [do_cosmicray_detect] completed in", "%.2f" % time, "s")
+	print(" End of script.", "%.2f" % time, "seconds to complete.")

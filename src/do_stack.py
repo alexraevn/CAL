@@ -82,8 +82,15 @@ if __name__ == "__main__":
 			print(" [CAL]: Adding", frame, "to stack list ...")
 			object_list.append(frame)
 
+		print()
 		print(" [CAL]: Running [do_stack] ...")
+		print()
+
 		stack = do_stack(object_list, input_dir, output_dir)
+
+		print()
+		print(" [CAL]: Ending [do_stack] ...")
+		print()
 
 		print(" [CAL]: Converting stack data to FITS format ...")
 		stack_fits = fits.PrimaryHDU(stack)
@@ -93,5 +100,4 @@ if __name__ == "__main__":
 
 	end = time.time()
 	time = end - start
-	print()
-	print(" [CAL]: Script [do_stack] completed in", "%.2f" % time, "s")
+	print(" End of script.", "%.2f" % time, "seconds to complete.")

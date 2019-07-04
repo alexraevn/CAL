@@ -165,14 +165,29 @@ if __name__ == "__main__":
 			object_list.append(frame)
 
 	if config["do_align"]["wcs_align"] == "yes":
+
+		print()
 		print(" [CAL]: Running [do_align][do_wcs_align] ...")
+		print()
+
 		do_wcs_align(object_list, output_dir)
 
+		print()
+		print(" [CAL]: Ending [do_align][do_wcs_align] ...")
+		print()
+
 	elif config["do_align"]["wcs_align"] == "no":
+
+		print()
 		print(" [CAL]: Running [do_align][do_astro_align] ...")
+		print()
+
 		do_astro_align(object_list, output_dir)
+
+		print()
+		print(" [CAL]: Ending [do_align][do_astro_align] ...")
+		print()
 
 	end = time.time()
 	time = end - start
-	print()
-	print(" [CAL]: Script [do_align] completed in", "%.2f" % time, "s")
+	print(" End of script.", "%.2f" % time, "seconds to complete.")

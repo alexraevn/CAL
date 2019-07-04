@@ -51,6 +51,8 @@ if __name__ == "__main__":
 
 	os.system("clear")
 
+	print(" Running CAL ...")
+	print()
 	print(" [CAL]: Running [do_dark_master] as script ...")
 	start = time.time()
 
@@ -82,13 +84,19 @@ if __name__ == "__main__":
 			print(" [CAL]: Adding", frame, "to dark combine list ...")
 			dark_list.append(frame)
 
+		print()
 		print(" [CAL]: Running [do_dark_master] ...")
+		print()
+
 		master_dark = do_dark_master(dark_list)
+		
+		print()
+		print(" [CAL]: Ending [do_dark_master] ...")
+		print()
 
 		print(" [CAL]: Writing master dark to output directory ...")
 		ccdproc.fits_ccddata_writer(master_dark, output_dir + "/master-dark.fit")
 
 	end = time.time()
 	time = end - start
-	print()
-	print(" [CAL]: Script [do_dark_master] completed in", "%.2f" % time, "s")
+	print(" End of script.", "%.2f" % time, "seconds to complete.")

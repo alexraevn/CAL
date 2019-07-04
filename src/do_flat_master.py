@@ -97,13 +97,19 @@ if __name__ == "__main__":
 			print(" [CAL]: Adding", frame, "to flat combine list ...")
 			flat_list.append(frame)
 
+		print()
 		print(" [CAL]: Running [do_flat_master] ...")
+		print()
+
 		flatfield = do_flat_master(flat_list, master_dark)
+
+		print()
+		print(" [CAL]: Ending [do_flat_master] ...")
+		print()
 
 		print(" [CAL]: Writing flatfield to output directory ...")
 		ccdproc.fits_ccddata_writer(flatfield, output_dir + "/flatfield.fit")
 
 	end = time.time()
 	time = end - start
-	print()
-	print(" [CAL]: Script [do_flat_master] completed in", "%.2f" % time, "s")
+	print(" End of script.", "%.2f" % time, "seconds to complete.")

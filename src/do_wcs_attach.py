@@ -95,10 +95,16 @@ if __name__ == "__main__":
 			print(" [CAL]: Adding", frame, "to solve list ...")
 			object_list.append(frame)
 
+	print()
 	print(" [CAL]: Running [do_wcs_attach] ...")
+	print()
+
 	do_wcs_attach(object_list, output_dir)
+
+	print()
+	print(" [CAL]: Ending [do_wcs_attach] ...")
+	print()
 
 	end = time.time()
 	time = end - start
-	print()
-	print(" [CAL]: Script [do_wcs_attach] completed in", "%.2f" % time, "s")
+	print(" End of script.", "%.2f" % time, "seconds to complete.")
