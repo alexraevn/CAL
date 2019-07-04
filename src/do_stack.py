@@ -1,13 +1,24 @@
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Richard Camuccio
-# 27 Apr 2019
-#
-# Last update: 27 Apr 2019
-#
-# Function: do_stack (CAL)
-#
+
+"""
+CAL
+
+The function [do_stack] creates a stack from a series of FITS frames
+
+Args:
+	object_list <class 'list'> : list of FITS file names (each name is <class 'str'>)
+	stack_method <class 'str'> : combine list of frames by their overall median or mean (default is median)
+
+Returns:
+	stack <class 'astropy.nddata.ccddata.CCDData'> : a stacked FITS frame
+
+Date: 27 Apr 2019
+Last update: 4 Jul 2019
+"""
+
+__author__ = "Richard Camuccio"
+__version__ = "1.0"
 
 from astropy import units as u
 from astropy.io import fits
@@ -18,60 +29,69 @@ import numpy as np
 import os
 import time
 
-print("<STATUS> Reading configuration file ...")
-config = configparser.ConfigParser()
-config.read("/home/rcamuccio/Documents/CAL/config.ini")
-
-def do_stack(object_list, input_dir, output_dir):
+def do_stack(object_list, stack_method="median"):
 	"""Create stack of FITS frames"""
 
-	if config["do_stack"]["stack_method"] == "median":
-
-		print("<STATUS> Combining frames to create median stack ...")
+	if stack_method == "median":
+		print(" [CAL]: Combining frames to create median stack ...")
 		stack = ccdproc.combine(object_list, method="median", unit="adu")
 
-	elif config["do_stack"]["stack_method"] == "mean":
+	elif stack_method == "mean":
+		print(" [CAL]: Combining frames to create mean stack ...")
+		stack = ccdproc.combine(object_list, method="mean", unit="adu")
 
-		print("<STATUS> Combining frames to create mean stack ...")
+	else:
+		print(" [CAL]: Unknown combine method, defaulting to median combine ...")
+		print(" [CAL]: Stacking frames ...")
 		stack = ccdproc.combine(object_list, method="median", unit="adu")
-
-	print("<STATUS> Converting stack data to FITS format ...")
-	fits_stack = fits.PrimaryHDU(stack)
-
-	if config["do_stack"]["write_stack"] == "yes":
-
-		print("<STATUS> Saving stack to directory", output_dir, "...")
-		fits_stack.writeto(output_dir + "/stack.fit", overwrite=True)
 
 	return stack
 
 if __name__ == "__main__":
 
+	os.system("clear")
+
+	print(" [CAL]: Running [do_stack] as script ...")
 	start = time.time()
 
+	print(" [CAL]: Reading configuration file ...")
+	config = configparser.ConfigParser()
+	config.read("/home/rcamuccio/Documents/CAL/config/config.ini")
+
+	print(" [CAL]: Parsing directory paths ...")
 	input_dir = config["do_stack"]["input_dir"]
 	output_dir = config["do_stack"]["output_dir"]
-	object_list = []
 
+	print(" [CAL]: Checking if output path exists ...")
+	if not os.path.exists(output_dir):
+		print(" [CAL]: Creating output directory", output_dir, "...")
+		os.makedirs(output_dir)
+
+	print(" [CAL]: Checking if stack exists ...")
 	if os.path.isfile(output_dir + "/stack.fit"):
-
-		print("<STATUS> Stack already exists. Reading pre-existing stack ...")
-		master_dark = fits.open(output_dir + "/stack.fit")
+		print(" [CAL]: Stack already exists. Reading pre-existing stack ...")
+		stack = fits.open(output_dir + "/stack.fit")
 
 	else:
-
+		print(" [CAL]: Changing to", input_dir, "as current working directory ...")
 		os.chdir(input_dir)
-		print("<STATUS> Changing to", input_dir, "as current working directory ...")
+
+		object_list = []
 
 		for frame in glob.glob("*.fit"):
-
-			print("<STATUS> Adding", frame, "to stack list ...")
+			print(" [CAL]: Adding", frame, "to stack list ...")
 			object_list.append(frame)
 
-		print("<STATUS> Running [do_stack] ...")
+		print(" [CAL]: Running [do_stack] ...")
 		stack = do_stack(object_list, input_dir, output_dir)
+
+		print(" [CAL]: Converting stack data to FITS format ...")
+		stack_fits = fits.PrimaryHDU(stack)
+
+		print(" [CAL]: Saving stack to directory", output_dir, "...")
+		stack_fits.writeto(output_dir + "/stack.fit", overwrite=True)
 
 	end = time.time()
 	time = end - start
 	print()
-	print("%.2f" % time, "seconds to complete.")
+	print(" [CAL]: Script [do_stack] completed in", "%.2f" % time, "s")
