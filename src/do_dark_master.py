@@ -49,6 +49,8 @@ def do_dark_master(dark_list, combine_method="median"):
 
 if __name__ == "__main__":
 
+	os.system("clear")
+
 	print(" [CAL]: Running [do_dark_master] as script ...")
 	start = time.time()
 
@@ -83,12 +85,8 @@ if __name__ == "__main__":
 		print(" [CAL]: Running [do_dark_master] ...")
 		master_dark = do_dark_master(dark_list)
 
-		if config["do_dark_master"]["write_dark"] == "yes":
-			print(" [CAL]: Writing master dark to output directory ...")
-			ccdproc.fits_ccddata_writer(master_dark, output_dir + "/master-dark.fit")
-
-		elif config["do_dark_master"]["write_dark"] == "no":
-			print("[ CAL]: Skipping master dark write to output directory ...")
+		print(" [CAL]: Writing master dark to output directory ...")
+		ccdproc.fits_ccddata_writer(master_dark, output_dir + "/master-dark.fit")
 
 	end = time.time()
 	time = end - start

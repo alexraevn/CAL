@@ -100,16 +100,8 @@ if __name__ == "__main__":
 		print(" [CAL]: Running [do_flat_master] ...")
 		flatfield = do_flat_master(flat_list, master_dark)
 
-		if config["do_flat_master"]["write_flat"] == "yes":
-			print(" [CAL]: Writing flatfield to output directory ...")
-			ccdproc.fits_ccddata_writer(flatfield, output_dir + "/flatfield.fit")
-
-		elif config["do_flat_master"]["write_flat"] == "no":
-			print(" [CAL]: Skipping flatfield write to output directory ...")
-
-		else:
-			print(" [CAL]: Unknown command for saving to directory ...")
-			print(" [CAL]: Skipping flatfield write to output directory ...")
+		print(" [CAL]: Writing flatfield to output directory ...")
+		ccdproc.fits_ccddata_writer(flatfield, output_dir + "/flatfield.fit")
 
 	end = time.time()
 	time = end - start
