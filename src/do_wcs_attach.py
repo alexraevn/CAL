@@ -15,11 +15,11 @@ Returns:
 	n/a
 
 Date: 2 May 2019
-Last update: 4 Jul 2019
+Last update: 7 Jul 2019
 """
 
 __author__ = "Richard Camuccio"
-__version__ = "1.0"
+__version__ = "1.1.0"
 
 from astropy.io import fits
 import configparser
@@ -33,7 +33,7 @@ def do_wcs_attach(object_list, output_dir):
 
 	for item in object_list:
 
-		print(" [CAL]: Parsing file names ...")
+		print(" [CAL][do_wcs_attach]: Parsing file names")
 		file = item[:-4]
 		file_axy = file + ".axy"
 		file_corr = file + ".corr"
@@ -44,11 +44,11 @@ def do_wcs_attach(object_list, output_dir):
 		file_wcs = file + ".wcs"
 		file_xyls = file + "-indx.xyls"
 
-		print(" [CAL]: Initiating astrometry.net code on", item, "...")
+		print(" [CAL][do_wcs_attach]: Running astrometry.net code on", item)
 		print()
-		subprocess.run(["solve-field", "--no-plots", item])
+		subprocess.run(["solve-field", "--no-plots", item, "--ra", "16:37:16.00", "--dec", "7:11:00.0", "--radius", "1"])
 
-		print(" [CAL]: Cleaning up ...")
+		print(" [CAL][do_wcs_attach]: Cleaning up")
 		subprocess.run(["rm", file_axy])
 		subprocess.run(["rm", file_corr])
 		subprocess.run(["rm", file_match])
@@ -57,30 +57,35 @@ def do_wcs_attach(object_list, output_dir):
 		subprocess.run(["rm", file_wcs])
 		subprocess.run(["rm", file_xyls])
 
-		print(" [CAL]: Moving solved fields to output directory", output_dir, "...")
+		print(" [CAL][do_wcs_attach]: Moving solved fields to", output_dir)
 		subprocess.run(["mv", file_new, output_dir + str("/wcs-") + file + ".fit"])
+		print()
 
 	return
 
 if __name__ == "__main__":
 
-	print(" [CAL]: Running [do_wcs_attach] as script ...")
+	os.system("clear")
+
+	print(" Running CAL")
+	print()
+	print(" [CAL]: Running [do_wcs_attach] as script")
 	start = time.time()
 
-	print(" [CAL]: Reading configuration file ...")
+	print(" [CAL]: Reading configuration file")
 	config = configparser.ConfigParser()
 	config.read("/home/rcamuccio/Documents/CAL/config/config.ini")
 
-	print(" [CAL]: Parsing directory paths ...")
+	print(" [CAL]: Parsing directory paths")
 	input_dir = config["do_wcs_attach"]["input_dir"]
 	output_dir = config["do_wcs_attach"]["output_dir"]
 
-	print(" [CAL]: Checking if output path exists ...")
+	print(" [CAL]: Checking if output path exists")
 	if not os.path.exists(output_dir):
-		print(" [CAL]: Creating output directory", output_dir, "...")
+		print(" [CAL]: Creating output directory", output_dir)
 		os.makedirs(output_dir)
 
-	print(" [CAL]: Changing to", input_dir, "as current working directory ...")
+	print(" [CAL]: Changing to", input_dir, "as current working directory")
 	os.chdir(input_dir)
 
 	object_list = []
@@ -88,21 +93,24 @@ if __name__ == "__main__":
 	for frame in glob.glob("*.fit"):
 
 		if os.path.isfile(str(output_dir) + "/c-" + str(frame)):
-			print(" [CAL]: WCS-solved frame of", frame, "already exists ...")
-			print(" [CAL]: Skipping calibration on frame", frame, "...")
+			print(" [CAL]: WCS-solved frame of", frame, "already exists")
+			print(" [CAL]: Skipping calibration on frame", frame)
 
 		else:
-			print(" [CAL]: Adding", frame, "to solve list ...")
+			print(" [CAL]: Adding", frame, "to solve list")
 			object_list.append(frame)
 
+	print(" [CAL]: Sorting object list")
+	object_list = sorted(object_list)
+
 	print()
-	print(" [CAL]: Running [do_wcs_attach] ...")
+	print(" [CAL]: Running [do_wcs_attach]")
 	print()
 
 	do_wcs_attach(object_list, output_dir)
 
 	print()
-	print(" [CAL]: Ending [do_wcs_attach] ...")
+	print(" [CAL]: Ending [do_wcs_attach]")
 	print()
 
 	end = time.time()

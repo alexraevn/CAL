@@ -14,11 +14,11 @@ Returns:
     master_dark <class 'astropy.nddata.ccddata.CCDData'> : a master dark FITS frame
 
 Date: 27 Apr 2019
-Last update: 4 Jul 2019
+Last update: 6 Jul 2019
 """
 
 __author__ = "Richard Camuccio"
-__version__ = "1.0"
+__version__ = "1.1.0"
 
 from astropy import units as u
 from astropy.io import fits
@@ -33,16 +33,16 @@ def do_dark_master(dark_list, combine_method="median"):
 	"""Create a master dark frame from a series of individual darks"""
 
 	if combine_method == "median":
-		print(" [CAL]: Combining darks by their median ...")
+		print(" [CAL][do_dark_master]: Combining darks by median")
 		master_dark = ccdproc.combine(dark_list, method="median", unit="adu")
 
 	elif combine_method == "mean":
-		print(" [CAL]: Combining darks by their mean ...")
+		print(" [CAL][do_dark_master]: Combining darks by mean")
 		master_dark = ccdproc.combine(dark_list, method="mean", unit="adu")
 
 	else:
-		print(" [CAL]: Unknown combine method, defaulting to median combine ...")
-		print(" [CAL]: Combining darks ...")
+		print(" [CAL][do_dark_master]: Unknown combine method... defaulting to median")
+		print(" [CAL][do_dark_master]: Combining darks")
 		master_dark = ccdproc.combine(dark_list, method="median", unit="adu")
 
 	return master_dark
@@ -51,50 +51,50 @@ if __name__ == "__main__":
 
 	os.system("clear")
 
-	print(" Running CAL ...")
+	print(" Running CAL")
 	print()
-	print(" [CAL]: Running [do_dark_master] as script ...")
+	print(" [CAL]: Running [do_dark_master] as script")
 	start = time.time()
 
-	print(" [CAL]: Reading configuration file ...")
+	print(" [CAL]: Reading configuration file")
 	config = configparser.ConfigParser()
 	config.read("/home/rcamuccio/Documents/CAL/config/config.ini")
 
-	print(" [CAL]: Parsing directory paths ...")
+	print(" [CAL]: Parsing directory paths")
 	input_dir = config["do_dark_master"]["input_dir"]
 	output_dir = config["do_dark_master"]["output_dir"]
 
-	print(" [CAL]: Checking if output path exists ...")
+	print(" [CAL]: Checking if output path exists")
 	if not os.path.exists(output_dir):
-		print(" [CAL]: Creating output directory", output_dir, "...")
+		print(" [CAL]: Creating output directory", output_dir)
 		os.makedirs(output_dir)
 
-	print(" [CAL]: Checking if master dark frame exists ...")
+	print(" [CAL]: Checking if master dark frame exists")
 	if os.path.isfile(output_dir + "/master-dark.fit"):
-		print(" [CAL]: Reading pre-existing master dark frame ...")
+		print(" [CAL]: Reading pre-existing master dark frame")
 		master_dark = fits.open(output_dir + "/master-dark.fit")
 
 	else:
-		print(" [CAL]: Changing to", input_dir, "as current working directory ...")
+		print(" [CAL]: Changing to", input_dir, "as current working directory")
 		os.chdir(input_dir)
 
 		dark_list = []
 
 		for frame in glob.glob("*.fit"):
-			print(" [CAL]: Adding", frame, "to dark combine list ...")
+			print(" [CAL]: Adding", frame, "to dark combine list")
 			dark_list.append(frame)
 
 		print()
-		print(" [CAL]: Running [do_dark_master] ...")
+		print(" [CAL]: Running [do_dark_master]")
 		print()
 
 		master_dark = do_dark_master(dark_list)
 		
 		print()
-		print(" [CAL]: Ending [do_dark_master] ...")
+		print(" [CAL]: Ending [do_dark_master]")
 		print()
 
-		print(" [CAL]: Writing master dark to output directory ...")
+		print(" [CAL]: Writing master dark to output directory")
 		ccdproc.fits_ccddata_writer(master_dark, output_dir + "/master-dark.fit")
 
 	end = time.time()

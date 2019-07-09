@@ -15,11 +15,11 @@ Returns:
 	n/a
 
 Date: 28 Apr 2019
-Last update: 4 Jul 2019
+Last update: 7 Jul 2019
 """
 
 __author__ = "Richard Camuccio"
-__version__ = "1.0"
+__version__ = "1.1.0"
 
 from astropy import units as u
 from astropy.io import fits
@@ -27,9 +27,10 @@ from astropy.stats import biweight_location
 from astropy.stats import mad_std
 from astropy.stats import SigmaClip
 from astropy.stats import sigma_clipped_stats
-from photutils import Background2D
+from do_read import *
+#from photutils import Background2D
 from photutils import make_source_mask
-from photutils import MedianBackground
+#from photutils import MedianBackground
 import configparser
 import glob
 import numpy as np
@@ -40,45 +41,49 @@ def do_simple_bkgsub(object_list, output_dir, sub_method="median"):
 
 	for item in object_list:
 
-		print(" [CAL][do_simple_bkgsub]: Opening frame", item, "...")
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Opening frame", item)
 		frame = fits.open(item)
 
-		print(" [CAL][do_simple_bkgsub]: Reading frame", item, "data ...")
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Reading frame data")
 		frame_data = frame[0].data
 
-		print(" [CAL][do_simple_bkgsub]: Calculating mean of", item, "...")
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Calculating mean")
 		mean = np.mean(frame_data)
 
-		print(" [CAL][do_simple_bkgsub]: Calculating median of", item, "...")
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Calculating median")
 		median = np.median(frame_data)
 
-		print(" [CAL][do_simple_bkgsub]: Calculating biweight location of", item, "...")
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Calculating biweight location")
 		bw_loc = biweight_location(frame_data)
 
-		print(" [CAL][do_simple_bkgsub]: Calculating mean absolute deviation of", item, "...")
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Calculating mean absolute deviation")
 		mean_abs_dev = mad_std(frame_data)
 
-		print(" ---------------------------------------------")
-		print("  Simple statistics for", item)
-		print("   Mean:", "%.3f" % mean, "ADU")
-		print("   Median:", "%.3f" % median, "ADU")
-		print("   Biweight location:", "%.3f" % bw_loc, "ADU")
-		print("   Mean absolute deviation:", "%.3f" % mean_abs_dev, "ADU")
-		print(" ---------------------------------------------")
+		#print(" ---------------------------------------------")
+		#print("  Simple statistics for", item)
+		#print("   Mean:", "%.3f" % mean, "ADU")
+		#print("   Median:", "%.3f" % median, "ADU")
+		#print("   Biweight location:", "%.3f" % bw_loc, "ADU")
+		#print("   Mean absolute deviation:", "%.3f" % mean_abs_dev, "ADU")
+		#print(" ---------------------------------------------")
 
 		if sub_method == "median":
-			print(" [CAL][do_simple_bkgsub]: Subtracting median from array ...")
+			print(" [CAL][do_background_sub][do_simple_bkgsub]: Subtracting median from array")
 			bkgsub_data = frame_data - median
 
 		elif sub_method == "mean":
-			print(" [CAL][do_simple_bkgsub]: Subtracting mean from array ...")
+			print(" [CAL][do_background_sub][do_simple_bkgsub]: Subtracting mean from array")
 			bkgsub_data = frame_data - mean
 
-		print(" [CAL][do_simple_bkgsub]: Converting background-subtracted array to FITS ...")
-		bkgsub_frame = fits.PrimaryHDU(bkgsub_data)
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Running [do_read]")
+		hdr = do_read(item, output_dir)
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Ending [do_read]")
 
-		print(" [CAL][do_simple_bkgsub]: Saving FITS to directory", output_dir, "...")
-		bkgsub_frame.writeto(output_dir + "/simple-bkgsub-" + str(item), overwrite=True)
+		print(" [CAL][do_simple_bkgsub]: Converting background-subtracted array to FITS")
+		hdu = fits.PrimaryHDU(bkgsub_data, header=hdr)
+
+		print(" [CAL][do_background_sub][do_simple_bkgsub]: Saving FITS to", output_dir)
+		hdu.writeto(output_dir + "/simple-bkgsub-" + str(item), overwrite=True)
 
 	return
 
@@ -86,71 +91,84 @@ def do_sigma_bkgsub(object_list, output_dir, sub_method="median", sigma=5.0):
 
 	for item in object_list:
 
-		print(" [CAL][do_sigma_bkgsub]: Opening frame", item, "...")
+		print(" [CAL][do_background_sub][do_sigma_bkgsub]: Opening frame", item)
 		frame = fits.open(item)
 
-		print(" [CAL][do_sigma_bkgsub]: Reading frame", item, "data ...")
+		print(" [CAL][do_background_sub][do_sigma_bkgsub]: Reading frame data")
 		frame_data = frame[0].data
 
-		print(" [CAL][do_sigma_bkgsub]: Calculating statistics of", item, "...")
+		print(" [CAL][do_background_sub][do_sigma_bkgsub]: Calculating statistics")
 		mean, median, std = sigma_clipped_stats(frame_data, sigma=sigma)
 									
-		print(" ---------------------------------------------")
-		print("  Sigma-clipped statistics for", item)
-		print("   Sigma:", sigma)
-		print("   Mean:", "%.3f" % mean, "ADU")
-		print("   Median:", "%.3f" % median, "ADU")
-		print("   Standard deviation:", "%.3f" % std, "ADU")
-		print(" ---------------------------------------------")
+		#print(" ---------------------------------------------")
+		#print("  Sigma-clipped statistics for", item)
+		#print("   Sigma:", sigma)
+		#print("   Mean:", "%.3f" % mean, "ADU")
+		#print("   Median:", "%.3f" % median, "ADU")
+		#print("   Standard deviation:", "%.3f" % std, "ADU")
+		#print(" ---------------------------------------------")
 
 		if sub_method == "median":
-			print(" [CAL][do_sigma_bkgsub]: Subtracting median from array ...")
+			print(" [CAL][do_background_sub][do_sigma_bkgsub]: Subtracting median")
 			bkgsub_data = frame_data - median
 			
 		elif sub_method == "mean":
-			print(" [CAL][do_sigma_bkgsub]: Subtracting mean from array ...")
+			print(" [CAL][do_background_sub][do_sigma_bkgsub]: Subtracting mean")
 			bkgsub_data = frame_data - mean
 
-		print(" [CAL][do_sigma_bkgsub]: Converting background-subtracted array to FITS ...")
-		bkgsub_frame = fits.PrimaryHDU(bkgsub_data)
+		print(" [CAL][do_background_sub][do_sigma_bkgsub]: Running [do_read]")
+		hdr = do_read(item, output_dir)
+		print(" [CAL][do_background_sub][do_sigma_bkgsub]: Ending [do_read]")
 
-		print(" [CAL][do_sigma_bkgsub]: Saving FITS to directory", output_dir, "...")
-		bkgsub_frame.writeto(output_dir + "/sigma-bkgsub-" + str(item), overwrite=True)
+		print(" [CAL][do_background_sub][do_sigma_bkgsub]: Converting background-subtracted array to FITS")
+		hdu = fits.PrimaryHDU(bkgsub_data, header=hdr)
+
+		print(" [CAL][do_background_sub][do_sigma_bkgsub]: Saving FITS to", output_dir)
+		hdu.writeto(output_dir + "/sigma-bkgsub-" + str(item), overwrite=True)
 
 	return
 
-def do_mask_bkgsub(object_list, output_dir, sub_method="median", sigma=3.0):
+def do_mask_bkgsub(object_list, output_dir, sub_method="median", sigma=5.0):
 
 	for item in object_list:
 
-		print(" [CAL][do_mask_bkgsub]: Opening frame", item, "...")
+		print(" [CAL][do_background_sub][do_mask_bkgsub]: Opening frame", item)
 		frame = fits.open(item)
 
-		print(" [CAL][do_mask_bkgsub]: Reading frame", item, "data ...")
+		print(" [CAL][do_background_sub][do_mask_bkgsub]: Reading frame data")
 		frame_data = frame[0].data
 
-		print(" [CAL][do_mask_bkgsub]: Making source mask ...")
-		mask = make_source_mask(frame_data, snr=2, npixels=5, dilate_size=50)
+		print(" [CAL][do_background_sub][do_mask_bkgsub]: Creating source mask")
+		mask = make_source_mask(frame_data, snr=2, npixels=5, dilate_size=30)
 
-		print(" [CAL][do_mask_bkgsub]: Calculating statistics of", item, "...")
+		print(" [CAL][do_background_sub][do_mask_bkgsub]: Calculating statistics")
 		mean, median, std = sigma_clipped_stats(frame_data, sigma=sigma, mask=mask)
 
-		print(" ---------------------------------------------")
-		print("  Source-masked statistics for", item)
-		print("   Sigma:", sigma)
-		print("   Mean:", "%.3f" % mean, "ADU")
-		print("   Median:", "%.3f" % median, "ADU")
-		print("   Standard deviation:", "%.3f" % std, "ADU")
-		print(" ---------------------------------------------")
+		#print(" ---------------------------------------------")
+		#print("  Source-masked statistics for", item)
+		#print("   Sigma:", sigma)
+		#print("   Mean:", "%.3f" % mean, "ADU")
+		#print("   Median:", "%.3f" % median, "ADU")
+		#print("   Standard deviation:", "%.3f" % std, "ADU")
+		#print(" ---------------------------------------------")
 
-		print(" [CAL][do_mask_bkgsub]: Subtracting median from array ...")
-		bkgsub_data = frame_data - median
+		if sub_method == "median":
+			print(" [CAL][do_background_sub][do_mask_bkgsub]: Subtracting median")
+			bkgsub_data = frame_data - median
 
-		print(" [CAL][do_mask_bkgsub]: Converting background-subtracted array to FITS ...")
-		bkgsub_frame = fits.PrimaryHDU(bkgsub_data)
+		elif sub_method == "mean":
+			print(" [CAL][do_background_sub][do_mask_bkgsub]: Subtracting mean")
+			bkgsub_data = frame_data - mean
 
-		print(" [CAL][do_mask_bkgsub]: Saving FITS to directory", output_dir, "...")
-		bkgsub_frame.writeto(output_dir + "/mask-bkgsub-" + str(item), overwrite=True)
+		print(" [CAL][do_background_sub][do_mask_bkgsub]: Running [do_read]")
+		hdr = do_read(item, output_dir)
+		print(" [CAL][do_background_sub][do_mask_bkgsub]: Ending [do_read]")
+
+		print(" [CAL][do_background_sub][do_mask_bkgsub]: Converting background-subtracted array to FITS")
+		hdu = fits.PrimaryHDU(bkgsub_data, header=hdr)
+
+		print(" [CAL][do_background_sub][do_mask_bkgsub]: Saving FITS to", output_dir)
+		hdu.writeto(output_dir + "/mask-bkgsub-" + str(item), overwrite=True)
 
 	return
 
@@ -190,64 +208,72 @@ if __name__ == "__main__":
 
 	os.system("clear")
 
-	print(" Running CAL ...")
+	print(" Running CAL")
 	print()
-	print(" [CAL]: Running [do_background_sub] as script ...")
+	print(" [CAL]: Running [do_background_sub] as script")
 	start = time.time()
 
-	print(" [CAL]: Reading configuration file ...")
+	print(" [CAL]: Reading configuration file")
 	config = configparser.ConfigParser()
 	config.read("/home/rcamuccio/Documents/CAL/config/config.ini")
 
-	print(" [CAL]: Parsing directory paths ...")
+	print(" [CAL]: Parsing directory paths")
 	input_dir = config["do_background_sub"]["input_dir"]
 	output_dir = config["do_background_sub"]["output_dir"]
 
-	print(" [CAL]: Checking if output path exists ...")
+	print(" [CAL]: Checking if output path exists")
 	if not os.path.exists(output_dir):
-		print(" [CAL]: Creating output directory", output_dir, "...")
+		print(" [CAL]: Creating output directory", output_dir)
 		os.makedirs(output_dir)
 
-	print(" [CAL]: Changing to", input_dir, "as current working directory ...")
+	print(" [CAL]: Changing to", input_dir, "as current working directory")
 	os.chdir(input_dir)
 
 	object_list = []
 
 	for frame in glob.glob("*.fit"):
 
-		print(" [CAL]: Adding", frame, "to calibration list ...")
+		print(" [CAL]: Adding", frame, "to calibration list")
 		object_list.append(frame)
 
-	print(" [CAL]: Sorting list ...")
+	print(" [CAL]: Sorting list")
 	object_list = sorted(object_list)
-	print(" [CAL]: Sorted list:", object_list, "...")
 
-	print()
-	print(" [CAL]: Running [do_background_sub][do_simple_bkgsub] ...")
-	print()
+	if config["do_background_sub"]["bkg_method"] == "simple":
 
-	do_simple_bkgsub(object_list, output_dir)
+		print()
+		print(" [CAL]: Running [do_background_sub][do_simple_bkgsub]")
+		print()
 
-	print()
-	print(" [CAL]: Ending [do_background_sub][do_simple_bkgsub] ...")
-	print()
+		do_simple_bkgsub(object_list, output_dir)
 
-	print(" [CAL]: Running [do_background_sub][do_sigma_bkgsub] ...")
-	print()
-	do_sigma_bkgsub(object_list, output_dir)
+		print()
+		print(" [CAL]: Ending [do_background_sub][do_simple_bkgsub]")
+		print()
+
+	elif ["do_background_sub"]["bkg_method"] == "sigma":
 	
-	print()
-	print(" [CAL]: Ending [do_background_sub][do_sigma_bkgsub] ...")
-	print()
+		print()
+		print(" [CAL]: Running [do_background_sub][do_sigma_bkgsub]")
+		print()
 
-	print(" [CAL]: Running [do_background_sub][do_mask_bkgsub] ...")
-	print()
+		do_sigma_bkgsub(object_list, output_dir)
+	
+		print()
+		print(" [CAL]: Ending [do_background_sub][do_sigma_bkgsub]")
+		print()
 
-	do_mask_bkgsub(object_list, output_dir)
+	elif ["do_background_sub"]["bkg_method"] == "mask":
 
-	print()
-	print(" [CAL]: Ending [do_background_sub][do_mask_bkgsub] ...")
-	print()
+		print()
+		print(" [CAL]: Running [do_background_sub][do_mask_bkgsub]")
+		print()
+
+		do_mask_bkgsub(object_list, output_dir)
+
+		print()
+		print(" [CAL]: Ending [do_background_sub][do_mask_bkgsub]")
+		print()
 
 	end = time.time()
 	time = end - start
