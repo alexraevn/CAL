@@ -75,9 +75,11 @@ def do_wcs_align(object_list, output_dir):
 			print(" [CAL][do_align][do_wcs_align]: Reading target frame data")
 			tar_data = tar_fits[0].data
 
+			print()
 			print(" [CAL][do_align][do_wcs_align]: Running [do_read]")
 			tar_hdr = do_read(object_list[i], output_dir)
 			print(" [CAL][do_align][do_wcs_align]: Ending [do_read]")
+			print()
 
 			print(" [CAL][do_align][do_wcs_align]: Converting target data to FITS")
 			tar_hdu = fits.PrimaryHDU(tar_data, header=tar_hdr)
@@ -124,9 +126,11 @@ def do_astro_align(object_list, output_dir):
 			print(" [CAL][do_align][do_astro_align]: Reading target frame data")
 			tar_data = tar_fits[0].data
 
+			print()
 			print(" [CAL][do_align][do_astro_align]: Running [do_read]")
 			tar_hdr = do_read(object_list[i], output_dir)
 			print(" [CAL][do_align][do_astro_align]: Ending [do_read]")
+			print()
 
 			print(" [CAL][do_align][do_astro_align]: Aligning target", object_list[i], "with reference", object_list[0])
 			array = aa.register(target_data, reference_data)

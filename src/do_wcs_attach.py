@@ -8,18 +8,18 @@ The function [do_wcs_attach] Create a series of WCS-attached FITS frames using l
 
 Args:
 	object_list <class 'list'> : list of FITS file names (each name is <class 'str'>)
-	input_dir <class 'str'> : path to unsolved FITS files
 	output_dir <class 'str'> : path for saving solved FITS files
+	search <class 'None'> or <class 'list'> : list containing RA "hh:mm:ss.ss", Dec "(-)dd:mm:ss.ss", and radius (all are <class 'str'>); default is None
 
 Returns:
 	n/a
 
 Date: 2 May 2019
-Last update: 7 Jul 2019
+Last update: 16 Jul 2019
 """
 
 __author__ = "Richard Camuccio"
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from astropy.io import fits
 import configparser
@@ -28,7 +28,7 @@ import os
 import subprocess
 import time
 
-def do_wcs_attach(object_list, output_dir):
+def do_wcs_attach(object_list, output_dir, search=None):
 	"""Create WCS-attached FITS to series of frames using astrometry.net"""
 
 	for item in object_list:
@@ -44,10 +44,21 @@ def do_wcs_attach(object_list, output_dir):
 		file_wcs = file + ".wcs"
 		file_xyls = file + "-indx.xyls"
 
-		print(" [CAL][do_wcs_attach]: Running astrometry.net code on", item)
-		print()
-		subprocess.run(["solve-field", "--no-plots", item, "--ra", "16:37:16.00", "--dec", "7:11:00.0", "--radius", "1"])
+		if search == None:
 
+			print()
+			print(" [CAL][do_wcs_attach]: Running astrometry.net code on", item)
+			subprocess.run(["solve-field", "--no-plots", item])
+		else:
+
+			ra = search[0]
+			dec = search[1]
+			radius = search[2]
+
+			print()
+			print(" [CAL][do_wcs_attach]: Running astrometry.net code on", item)
+			subprocess.run(["solve-field", "--no-plots", item, "--ra", ra, "--dec", dec, "--radius", radius])
+		
 		print(" [CAL][do_wcs_attach]: Cleaning up")
 		subprocess.run(["rm", file_axy])
 		subprocess.run(["rm", file_corr])
@@ -105,11 +116,7 @@ if __name__ == "__main__":
 
 	print()
 	print(" [CAL]: Running [do_wcs_attach]")
-	print()
-
 	do_wcs_attach(object_list, output_dir)
-
-	print()
 	print(" [CAL]: Ending [do_wcs_attach]")
 	print()
 

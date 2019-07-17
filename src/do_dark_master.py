@@ -86,11 +86,7 @@ if __name__ == "__main__":
 
 		print()
 		print(" [CAL]: Running [do_dark_master]")
-		print()
-
 		master_dark = do_dark_master(dark_list)
-		
-		print()
 		print(" [CAL]: Ending [do_dark_master]")
 		print()
 

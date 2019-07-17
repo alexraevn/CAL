@@ -103,11 +103,7 @@ if __name__ == "__main__":
 
 		print()
 		print(" [CAL]: Running [do_flat_master]")
-		print()
-
 		flatfield = do_flat_master(flat_list, master_dark)
-
-		print()
 		print(" [CAL]: Ending [do_flat_master]")
 		print()
 
