@@ -20,7 +20,7 @@ Returns:
 	n/a
 
 Date: 27 Apr 2019
-Last update: 16 Jul 2019
+Last update: 17 Jul 2019
 """
 
 __author__ = "Richard Camuccio"

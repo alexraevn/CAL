@@ -15,11 +15,11 @@ Returns:
 	flatfield <class 'astropy.nddata.ccddata.CCDData'> : a normalized flatfield FITS frame
 
 Date: 26 Apr 2019
-Last update: 6 Jul 2019
+Last update: 17 Jul 2019
 """
 
 __author__ = "Richard Camuccio"
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from astropy import units as u
 from astropy.io import fits

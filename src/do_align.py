@@ -25,11 +25,11 @@ Returns:
 	n/a
 
 Date: 27 Apr 2019
-Last update: 8 Jul 2019
+Last update: 17 Jul 2019
 """
 
 __author__ = "Richard Camuccio"
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from astropy import units as u
 from astropy.io import fits

@@ -14,11 +14,11 @@ Returns:
 	hdr <class 'astropy.io.fits.header.Header'> : Updated FITS header
 
 Date: 27 Apr 2019
-Last update: 6 Jul 2019
+Last update: 17 Jul 2019
 """
 
 __author__ = "Richard Camuccio"
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from astropy.io import fits
 import configparser
