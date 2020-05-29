@@ -130,7 +130,7 @@ class Pipeline:
 		return reduced_data
 
 	def combine_darks(self, input_dir, output_dir, method="median", write=True):
-		
+
 		if os.path.isfile(output_dir + "/master-dark.fit"):
 			print("Reading pre-existing master dark frame")
 			master_dark = fits.open(output_dir + "/master-dark.fit")
