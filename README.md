@@ -6,19 +6,14 @@
 
 ## Installation
 
-To install, use `pip` from the directory containing `setup.py`:
-
-	$ pip install .
-
 ---
 
 ## Usage
 
 ---
 
-7 Jun 2019
+7 Jun 2019   
+Last update: 3 Jul 2020
 
-Last update: 29 May 2020
-
-Richard Camuccio
+Richard Camuccio   
 rcamuccio@gmail.com
