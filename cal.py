@@ -43,7 +43,7 @@ class Pipeline:
 
 		return self.__name
 
-	def align(self, object_list, method, output_dir):
+	def align(self, object_list, output_dir, method):
 		"""Align a series of frames to a reference frame via ASTROALIGN or WCS REPROJECTION"""
 
 		if len(object_list) == 0 or len(object_list) == 1:
@@ -59,7 +59,7 @@ class Pipeline:
 			reference_hdu = fits.PrimaryHDU(reference_data, header=reference_header)
 
 			print("Writing reference frame to output directory")
-			reference_hdu.writeto(output_dir + "/a-" + str(object_list[0]))
+			reference_hdu.writeto(output_dir + "/a-" + str(object_list[0]), overwrite=True)
 
 			for i in range(1, len(object_list)):
 
@@ -82,19 +82,16 @@ class Pipeline:
 					array, footprint = reproject_interp(target_hdu, reference_header)
 
 				print("Converting aligned target data to FITS")
-				target_hdu = fits.PrimaryHDU(array, header=reference_header)
+				target_hdu = fits.PrimaryHDU(array, header=target_header)
 
 				print("Writing aligned frame to output directory")
-				target_hdu.writeto(output_dir + "/a-" + str(object_list[i]))
+				target_hdu.writeto(output_dir + "/a-" + str(object_list[i]), overwrite=True)
 
 		return
 
 	def combine_darks(self, dark_dir, method="median"):
 
-		print("Changing to input directory", dark_dir)
 		os.chdir(dark_dir)
-
-		print("Creating dark list")
 		dark_list = []
 
 		for item in glob.glob("*.fit"):
@@ -117,10 +114,7 @@ class Pipeline:
 
 	def combine_flats(self, flat_dir, dark_dir, method="median"):
 
-		print("Changing to input directory")
 		os.chdir(flat_dir)
-
-		print("Creating flat list")
 		flat_list = []
 
 		for item in glob.glob("*.fit"):
@@ -143,11 +137,7 @@ class Pipeline:
 		master_dark = ccdproc.fits_ccddata_reader(dark_dir + "/master-dark.fit")
 
 		print("Subtracting master dark from combined flat")
-		master_flat = ccdproc.subtract_dark(combined_flat, 
-											master_dark, 
-											data_exposure=combined_flat.header["exposure"]*u.second, 
-											dark_exposure=master_dark.header["exposure"]*u.second, 
-											scale=True)
+		master_flat = ccdproc.subtract_dark(combined_flat, master_dark, data_exposure=combined_flat.header["exposure"]*u.second, dark_exposure=master_dark.header["exposure"]*u.second, scale=True)
 
 		print("Reading master flat data")
 		master_flat_data = np.asarray(master_flat)
@@ -159,6 +149,26 @@ class Pipeline:
 		flatfield = ccdproc.CCDData(flatfield_data, unit="adu")
 
 		return flatfield
+
+	def combine_stack(self, stack_dir, method="median"):
+
+		if method == "median":
+			print("Combining stack by median")
+			stack = ccdproc.combine(stack_list, method="median", unit="adu", mem_limit=6e9)
+
+		elif method == "mean":
+			print("Combining stack by mean")
+			stack = ccdproc.combine(stack_list, method="mean", unit="adu", mem_limit=6e9)
+
+		elif method == "sum":
+			print("Combining stack by sum")
+			stack = ccdproc.combine(stack_list, method="sum", unit="adu", mem_limit=6e9)
+
+		else:
+			print("Combining stack by median")
+			stack = ccdproc.combine(stack_list, method="median", unit="adu", mem_limit=6e9)
+
+		return stack
 
 	def plate_solve(self, object_frame, output_dir, search=None):
 
@@ -183,7 +193,7 @@ class Pipeline:
 			radius = search[2]
 
 			print("Running astrometry on", object_frame)
-			subprocess.run(["solve-field", "--no-plots", object_frame, "--ra", ra, "--dec", dec, "--radius", radius, "--overwrite"])
+			subprocess.run(["solve-field", "--no-plots", object_frame, "--ra", ra, "--dec", dec, "--radius", radius])
 
 		print("Cleaning up")
 		subprocess.run(["rm", file_axy])
@@ -193,13 +203,13 @@ class Pipeline:
 		subprocess.run(["rm", file_solved])
 		subprocess.run(["rm", file_wcs])
 		subprocess.run(["rm", file_xyls])
-		subprocess.run(["mv", file_new, str(file_name) + ".fit"])
+		subprocess.run(["mv", file_new, "wcs-" + str(file_name) + ".fit"])
 
 		return
 
 	def reduce_object(self, object_frame, flatfield, master_dark, bkg_method="mesh"):
 
-		print("Opening object frame")
+		print("Opening object frame", object_frame)
 		obj_frame = fits.open(object_frame)
 		obj_frame_data = obj_frame[0].data
 		obj_frame_header = obj_frame[0].header
@@ -223,13 +233,11 @@ class Pipeline:
 		reduced_obj_frame_data /= flatfield_data
 
 		# Remove cosmic rays
-		sepmed = False
-		cleantype = "medmask"
+		#sepmed = False
+		#cleantype = "medmask"
 
-		print("Detecting cosmic rays")
-		artifact_mask, reduced_obj_frame_data = astroscrappy.detect_cosmics(reduced_obj_frame_data, 
-																			sepmed=sepmed,
-																			cleantype=cleantype)
+		#print("Detecting cosmic rays")
+		#artifact_mask, reduced_obj_frame_data = astroscrappy.detect_cosmics(reduced_obj_frame_data, sepmed=sepmed, cleantype=cleantype)
 
 		# Subtract background
 		if bkg_method == "mesh":
@@ -255,10 +263,6 @@ class Pipeline:
 		reduced_hdu = fits.PrimaryHDU(reduced_obj_frame_data, header=obj_frame_header)
 
 		return reduced_hdu
-
-	def subtract(self, method):
-
-		return
 
 if __name__ == "__main__":
 
@@ -315,45 +319,71 @@ if __name__ == "__main__":
 	
 	os.chdir(obj_dir)
 	obj_list = []
-
 	for item in glob.glob("*.fit"):
 
 		if "reduced" in item:
-			print("Not adding item", item, "to object list")
+			print("Not adding item", item, "to reduction queue")
 
 		else:
-			print("Adding", item, "to object list")
+			print("Adding", item, "to reduction queue")
 			obj_list.append(item)
 
 	obj_list = sorted(obj_list)
-
 	for obj in obj_list:
 
-		obj_path = obj_dir + "/" + obj
-		reduced_obj_path = obj_dir + "/reduced-" + obj
-
-		if os.path.isfile(reduced_obj_path):
+		if os.path.isfile("reduced-" + obj):
 			print("Skipping reduction on", obj)
 
 		else:
-			reduced_frame = pipeline.reduce_object(obj_path, flat_path, dark_obj_path)
-			reduced_frame.writeto(reduced_obj_path, overwrite=True)
+			reduced_frame = pipeline.reduce_object(obj, flat_path, dark_obj_path)
+			reduced_frame.writeto(obj_dir, overwrite=True)
 
 	# Plate solve objects
 	plate_solve_list = []
 
-	for item in glob.glob("reduced-*.fit"):
-
-		print("Adding", item, "to plate solve list")
+	for item in glob.glob("reduced*.fit"):
+		print("Adding", item, "to plate solve queue")
 		plate_solve_list.append(item)
 
 	plate_solve_list = sorted(plate_solve_list)
 
 	for obj in plate_solve_list:
 
-		obj_path = obj_dir + "/" + obj
-		pipeline.plate_solve(obj_path, obj_dir, search=["03:27:58.39", "-37:09:00.30", "1"])
+		if os.path.isfile("wcs-" + obj):
+			print("Skipping plate solve on", obj)
+
+		else:
+			pipeline.plate_solve(obj, obj_dir, search=["03:27:58.39", "-37:09:00.30", "1"])
+
+	# Align objects
+	align_list = []
+
+	for item in glob.glob("wcs*.fit"):
+		print("Adding", item, "to align queue")
+		align_list.append(item)
+
+	align_list = sorted(align_list)
+
+	pipeline.align(align_list, obj_dir, method="reproject")
+
+	# Stack aligned objects
+	stack_list = []
+
+	for item in glob.glob("a-wcs-reduced-*.fit"):
+		print("Adding", item, "to stack queue")
+		stack_list.append(item)
+
+	stack_list = sorted(stack_list)
+
+	if os.path.isfile("stack.fit"):
+		print("Reading pre-existing stack")
+		stack = fits.open("stack.fit")
+
+	else:
+		stack = pipeline.combine_stack(obj_dir)
+		print("Writing stack to output directory")
+		ccdproc.fits_ccddata_writer(stack, obj_dir + "/stack.fit", overwrite=True)
 
 	end_time = time.time()
 	total_time = end_time - start_time
-	print("Ended in", "%.1f" % total_time, "seconds")
+	print("CAL test ended in", "%.1f" % total_time, "seconds")
