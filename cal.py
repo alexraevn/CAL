@@ -17,6 +17,7 @@ import astroscrappy
 import ccdproc
 import configparser
 import glob
+import math
 import matplotlib.pyplot as plt
 import numpy as np 
 import os
@@ -24,8 +25,10 @@ import sep
 import subprocess
 import time
 from astropy import units as u
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.io import fits 
 from astropy.stats import sigma_clipped_stats
+from astropy.time import Time
 from photutils import make_source_mask
 from reproject import reproject_interp
 
@@ -334,7 +337,7 @@ class Pipeline:
 
 		frame_list = []
 		seeing_list = []
-		step_list = []
+		growth_radius_list = []
 
 		catalog = open(object_name + ".cat")
 
@@ -351,13 +354,13 @@ class Pipeline:
 				seeing = float(line[7]) * 3600
 				seeing_list.append(seeing)
 
-				step = float(line[5])
-				step_list.append(step)
+				growth_radius = float(line[5])
+				growth_radius_list.append(growth_radius)
 
 		mean_seeing = np.mean(seeing_list)
-		mean_step = np.mean(step_list)
+		mean_growth_radius = np.mean(growth_radius_list)
 
-		return mean_seeing, mean_step
+		return mean_seeing, mean_growth_radius
 
 	def plate_solve(self, object_frame, search=None):
 
@@ -602,22 +605,89 @@ if __name__ == "__main__":
 	# --- Stack aligned objects
 	stack_list = []
 
+	for item in glob.glob("a-wcs-reduced-*.fit"):
+		print("Adding", item, "to stack queue")
+		stack_list.append(item)
+
+	stack_list = sorted(stack_list)
+
 	if os.path.isfile("stack.fit"):
-		print("Skipping stack of aligned objects")
+		print("Reading pre-existing stack")
+		stack = ccdproc.fits_ccddata_reader("stack.fit")
 
 	else:
-		for item in glob.glob("a-wcs-reduced-*.fit"):
-			print("Adding", item, "to stack queue")
-			stack_list.append(item)
-
-		stack_list = sorted(stack_list)
-
 		stack = pipeline.combine_stack(stack_list)
-
 		print("Writing stack to output directory")
 		ccdproc.fits_ccddata_writer(stack, obj_dir + "/stack.fit", overwrite=True)
 
-	mean_seeing, mean_step = pipeline.extract_sources("stack.fit")
+	mean_seeing, mean_growth_radius = pipeline.extract_sources("stack.fit")
+
+	print("Mean seeing:", mean_seeing, "arcsec")
+	print("Mean growth radius:", mean_growth_radius, "px")
+
+	# --- Photometry on image series
+	altitude_list = []
+	seeing_list = []
+	time_list = []
+
+	observation_location = EarthLocation(lat="-31.5983", lon="-64.5439")
+
+	for item in stack_list:
+
+		# --- Read FITS header
+		image = fits.open(item)
+		image_header = image[0].header
+
+		image_dateobs = image_header["DATE-OBS"]
+		image_timeobs = image_header["TIME-OBS"]
+		image_jd = image_header["JD"]
+		image_ra = image_header["CRVAL1"]
+		image_dec = image_header["CRVAL2"]
+
+		# --- Time
+		observation_time = Time(image_dateobs + " " + image_timeobs)
+		time_list.append(image_jd)
+
+		# --- Air mass
+		aa = AltAz(location=observation_location, obstime=observation_time)
+		coord = SkyCoord(str(image_ra), str(image_dec), unit="deg")
+		coord_transform = coord.transform_to(aa)
+		h = coord_transform.alt.degree
+		altitude_list.append(h)
+
+		zenith_distance_list = []
+		for h in altitude_list:
+			z = 90 - h
+			zenith_distance_list.append(z)
+
+		airmass_list = []
+		for z in zenith_distance_list:
+			x = 1 / (math.cos(math.radians(z)) + 0.50572*((6.07995 + 90 - z)**-1.6364)) # Kasten and Young (1994) method
+			airmass_list.append(x)
+
+		# --- Seeing
+		seeing, growth_radius = pipeline.extract_sources(item)
+		seeing_list.append(seeing)
+
+	plt.clf()
+	font = {"fontname":"Monospace", "size":10}
+	plt.plot(time_list, airmass_list)
+	plt.title("Air mass", **font)
+	plt.xlabel("Time [JD]", **font)
+	plt.ylabel("Air mass", **font)
+	plt.xticks(**font)
+	plt.yticks(**font)
+	plt.savefig("airmass.png", dpi=300)
+
+	plt.clf()
+	font = {"fontname":"Monospace", "size":10}
+	plt.plot(time_list, seeing_list, ".")
+	plt.title("Seeing", **font)
+	plt.xlabel("Time [JD]", **font)
+	plt.ylabel("Mean FWHM [arcsec]", **font)
+	plt.xticks(**font)
+	plt.yticks(**font)
+	plt.savefig("seeing.png", dpi=300)
 
 	end_time = time.time()
 	total_time = end_time - start_time
