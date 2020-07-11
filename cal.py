@@ -17,6 +17,7 @@ import astroscrappy
 import ccdproc
 import configparser
 import glob
+import matplotlib.pyplot as plt
 import numpy as np 
 import os
 import sep
@@ -42,13 +43,15 @@ class Pipeline:
 
 		return self.__name
 
-	def align(self, object_list, output_dir, method):
+	def align_objects(self, object_list, output_dir, method):
 		"""Align a series of frames to a reference frame via ASTROALIGN or WCS REPROJECTION"""
 
 		if len(object_list) == 0 or len(object_list) == 1:
+
 			print("Insufficient number of images for alignment")
 
 		else:
+
 			print("Opening reference frame", object_list[0])
 			reference_frame = fits.open(object_list[0])
 			reference_data = reference_frame[0].data
@@ -62,41 +65,40 @@ class Pipeline:
 
 			for i in range(1, len(object_list)):
 
-				print("Opening target frame", object_list[i])
-				target_frame = fits.open(object_list[i])
-				target_data = target_frame[0].data
-				target_header = target_frame[0].header
+				if os.path.isfile("a-" + object_list[i]):
 
-				if method == "astroalign":
+					print("Skipping align on", object_list[i])
 
-					print("Aligning target frame with reference frame via ASTROALIGN")
-					array = aa.register(target_data, reference_data)
+				else:
 
-				elif method == "reproject":
+					print("Opening target frame", object_list[i])
+					target_frame = fits.open(object_list[i])
+					target_data = target_frame[0].data
+					target_header = target_frame[0].header
 
-					print("Converting target data to FITS")
-					target_hdu = fits.PrimaryHDU(target_data, header=target_header)
+					if method == "astroalign":
 
-					print("Aligning target frame with reference frame via WCS")
-					array, footprint = reproject_interp(target_hdu, reference_header)
+						print("Aligning target frame with reference frame via ASTROALIGN")
+						array = aa.register(target_data, reference_data)
 
-				print("Converting aligned target data to FITS")
-				target_hdu = fits.PrimaryHDU(array, header=target_header)
+					elif method == "reproject":
 
-				print("Writing aligned frame to output directory")
-				target_hdu.writeto(output_dir + "/a-" + str(object_list[i]), overwrite=True)
+						print("Converting target data to FITS")
+						target_hdu = fits.PrimaryHDU(target_data, header=target_header)
+
+						print("Aligning target frame with reference frame via WCS")
+						array, footprint = reproject_interp(target_hdu, reference_header)
+
+					print("Converting aligned target data to FITS")
+					target_hdu = fits.PrimaryHDU(array, header=target_header)
+
+					print("Writing aligned frame to output directory")
+					target_hdu.writeto(output_dir + "/a-" + str(object_list[i]), overwrite=True)
 
 		return
 
-	def combine_darks(self, dark_dir, method="median"):
+	def combine_darks(self, dark_list, method="median"):
 		"""Combine a series of dark frames into a master dark via CCDPROC"""
-
-		os.chdir(dark_dir)
-		dark_list = []
-
-		for item in glob.glob("*.fit"):
-			print("Adding", item, "to dark list")
-			dark_list.append(item)
 
 		if method == "median":
 			print("Combining darks by median")
@@ -112,15 +114,8 @@ class Pipeline:
 
 		return master_dark
 
-	def combine_flats(self, flat_dir, dark_dir, method="median"):
+	def combine_flats(self, flat_list, master_dark, method="median"):
 		"""Combine and reduce a series of flat frames into a normalized flatfield via CCDPROC"""
-
-		os.chdir(flat_dir)
-		flat_list = []
-
-		for item in glob.glob("*.fit"):
-			print("Adding", item, "to flat list")
-			flat_list.append(item)
 
 		if method == "median":
 			print("Combining flats by median")
@@ -134,14 +129,8 @@ class Pipeline:
 			print("Combining flats by median")
 			combined_flat = ccdproc.combine(flat_list, method="median", unit="adu", mem_limit=6e9)
 
-		print("Opening master dark frame")
-		master_dark = ccdproc.fits_ccddata_reader(dark_dir + "/master-dark.fit")
-
 		print("Subtracting master dark from combined flat")
-		master_flat = ccdproc.subtract_dark(combined_flat, master_dark, 
-											data_exposure=combined_flat.header["exposure"]*u.second, 
-											dark_exposure=master_dark.header["exposure"]*u.second, 
-											scale=True)
+		master_flat = ccdproc.subtract_dark(combined_flat, master_dark, data_exposure=combined_flat.header["exposure"]*u.second, dark_exposure=master_dark.header["exposure"]*u.second, scale=True)
 
 		print("Reading master flat data")
 		master_flat_data = np.asarray(master_flat)
@@ -154,7 +143,7 @@ class Pipeline:
 
 		return flatfield
 
-	def combine_stack(self, stack_dir, method="median"):
+	def combine_stack(self, stack_list, method="median"):
 		"""Combine a series of aligned object frames into a master stack via CCDPROC"""
 
 		if method == "median":
@@ -184,13 +173,13 @@ class Pipeline:
 		param_number = "NUMBER"
 		param_alphapeak_j2000 = "ALPHAPEAK_J2000"
 		param_deltapeak_j2000 = "DELTAPEAK_J2000"
-		param_flux_best = "FLUX_BEST"
+		param_flux_growth = "FLUX_GROWTH"
 		param_fluxerr_best = "FLUXERR_BEST"
+		param_flux_growthstep = "FLUX_GROWTHSTEP"
 		param_fwhm_image = "FWHM_IMAGE"
 		param_fwhm_world = "FWHM_WORLD"
 
-		default_parameters = [param_number, param_alphapeak_j2000, param_deltapeak_j2000, param_flux_best,
-								param_fluxerr_best, param_fwhm_image, param_fwhm_world]
+		default_parameters = [param_number, param_alphapeak_j2000, param_deltapeak_j2000, param_flux_growth, param_fluxerr_best, param_flux_growthstep, param_fwhm_image, param_fwhm_world]
 
 		default_param = open("default.param", "w")
 		for param in default_parameters:
@@ -201,86 +190,87 @@ class Pipeline:
 		# EB 2010-10-10
 
 		print("Writing configuration file")
+
 		# Catalog
 		catalog_name = ["CATALOG_NAME", object_name + ".cat"]
 		catalog_type = ["CATALOG_TYPE", "ASCII_HEAD"]
 		parameters_name = ["PARAMETERS_NAME", "default.param"]
 
 		# Extraction
-		detect_type = ["DETECT_TYPE", "CCD"]										# CCD (linear) or PHOTO (with gamma correction)
-		detect_minarea = ["DETECT_MINAREA", "3"]									# min. # of pixels above threshold
-		detect_thresh = ["DETECT_THRESH", "5.0"]									# <sigmas> or <threshold>,<ZP> in mag.arcsec-2
-		analysis_thresh = ["ANALYSIS_THRESH", "5.0"]								# <sigmas> or <threshold>,<ZP> in mag.arcsec-2
-		detection_filter = ["FILTER", "Y"]											# apply filter for detection (Y or N)?
-		detection_filter_name = ["FILTER_NAME", "default.conv"]						# name of the file containing the filter
-		deblend_nthresh = ["DEBLEND_NTHRESH", "32"]									# Number of deblending sub-thresholds
-		deblend_mincont = ["DEBLEND_MINCONT", "0.005"]								# Minimum contrast parameter for deblending
-		clean = ["CLEAN", "Y"]														# Clean spurious detections? (Y or N)?
-		clean_param = ["CLEAN_PARAM", "1.0"]										# Cleaning efficiency
+		detect_type = ["DETECT_TYPE", "CCD"] # CCD (linear) or PHOTO (with gamma correction)
+		detect_minarea = ["DETECT_MINAREA", "3"] # min. # of pixels above threshold
+		detect_thresh = ["DETECT_THRESH", "5.0"] # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+		analysis_thresh = ["ANALYSIS_THRESH", "5.0"] # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+		detection_filter = ["FILTER", "Y"] # apply filter for detection (Y or N)?
+		detection_filter_name = ["FILTER_NAME", "default.conv"]	# name of the file containing the filter
+		deblend_nthresh = ["DEBLEND_NTHRESH", "32"]	# Number of deblending sub-thresholds
+		deblend_mincont = ["DEBLEND_MINCONT", "0.005"] # Minimum contrast parameter for deblending
+		clean = ["CLEAN", "Y"] # Clean spurious detections? (Y or N)?
+		clean_param = ["CLEAN_PARAM", "1.0"] # Cleaning efficiency
 
 		# WEIGHTing
-		weight_type = ["WEIGHT_TYPE", "NONE"]										# type of WEIGHTing: NONE, BACKGROUND, MAP_RMS, MAP_VAR or MAP_WEIGHT
-		weight_image = ["WEIGHT_IMAGE", "weight.fits"]								# weight-map filename
+		weight_type = ["WEIGHT_TYPE", "NONE"] # type of WEIGHTing: NONE, BACKGROUND, MAP_RMS, MAP_VAR or MAP_WEIGHT
+		weight_image = ["WEIGHT_IMAGE", "weight.fits"] # weight-map filename
 
 		# FLAGging
-		flag_image = ["FLAG_IMAGE", "flag.fits"]									# filename for an input FLAG-image
-		flag_type = ["FLAG_TYPE", "OR"]												# flag pixel combination: OR, AND, MIN, MAX or MOST
+		flag_image = ["FLAG_IMAGE", "flag.fits"] # filename for an input FLAG-image
+		flag_type = ["FLAG_TYPE", "OR"] # flag pixel combination: OR, AND, MIN, MAX or MOST
 
 		# Photometry
-		phot_apertures = ["PHOT_APERTURES", "20"]									# MAG_APER aperture diameter(s) in pixels
-		phot_autoparams = ["PHOT_AUTOPARAMS", "2.5", "3.5"]							# MAG_AUTO parameters: <Kron_fact>,<min_radius>
-		phot_petroparams = ["PHOT_PETROPARAMS", "2.0", "3.5"]						# MAG_PETRO parameters: <Petrosian_fact>,<min_radius>
-		phot_autoapers = ["PHOT_AUTOAPERS", "0.0", "0.0"]							# <estimation>,<measurement> minimum apertures for MAG_AUTO and MAG_PETRO
-		satur_level = ["SATUR_LEVEL", "65535.0"]									# level (in ADUs) at which arises saturation
-		satur_key = ["SATUR_KEY", "SATURATE"]										# keyword for saturation level (in ADUs)
-		mag_zeropoint = ["MAG_ZEROPOINT", "0.0"]									# magnitude zero-point
-		mag_gamma = ["MAG_GAMMA", "4.0"]											# gamma of emulsion (for photographic scans)
-		gain = ["GAIN", "1.39"]														# keyword for detector gain in e-/ADU
-		gain_key = ["GAIN_KEY", "GAIN"]												# keyword for detector gain in e-/ADU
-		pixel_scale = ["PIXEL_SCALE", "0"]											# size of pixel in arcsec (0=use FITS WCS info)
+		phot_apertures = ["PHOT_APERTURES", "20"] # MAG_APER aperture diameter(s) in pixels
+		phot_autoparams = ["PHOT_AUTOPARAMS", "2.5", "3.5"] # MAG_AUTO parameters: <Kron_fact>,<min_radius>
+		phot_petroparams = ["PHOT_PETROPARAMS", "2.0", "3.5"] # MAG_PETRO parameters: <Petrosian_fact>,<min_radius>
+		phot_autoapers = ["PHOT_AUTOAPERS", "0.0", "0.0"] # <estimation>,<measurement> minimum apertures for MAG_AUTO and MAG_PETRO
+		satur_level = ["SATUR_LEVEL", "65535.0"] # level (in ADUs) at which arises saturation
+		satur_key = ["SATUR_KEY", "SATURATE"] # keyword for saturation level (in ADUs)
+		mag_zeropoint = ["MAG_ZEROPOINT", "0.0"] # magnitude zero-point
+		mag_gamma = ["MAG_GAMMA", "4.0"] # gamma of emulsion (for photographic scans)
+		gain = ["GAIN", "1.39"]	# keyword for detector gain in e-/ADU
+		gain_key = ["GAIN_KEY", "GAIN"]	# keyword for detector gain in e-/ADU
+		pixel_scale = ["PIXEL_SCALE", "0"] # size of pixel in arcsec (0=use FITS WCS info)
 
 		# Star/Galaxy Separation
-		seeing_fwhm = ["SEEING_FWHM", "6.0"]										# stellar FWHM in arcsec
-		starnnw_name = ["STARNNW_NAME", "default.nnw"]								# Neural-Network_Weight table filename
+		seeing_fwhm = ["SEEING_FWHM", "6.0"] # stellar FWHM in arcsec
+		starnnw_name = ["STARNNW_NAME", "default.nnw"] # Neural-Network_Weight table filename
 
 		# Background
-		back_type = ["BACK_TYPE", "AUTO"]											# AUTO or MANUAL
-		back_value = ["BACK_VALUE", "0.0"]											# Default background value in MANUAL mode
-		back_size = ["BACK_SIZE", "64"]												# Background mesh: <size> or <width>,<height>
-		back_filtersize = ["BACK_FILTERSIZE", "3"]									# Background filter: <size> or <width>,<height>
+		back_type = ["BACK_TYPE", "AUTO"] # AUTO or MANUAL
+		back_value = ["BACK_VALUE", "0.0"] # Default background value in MANUAL mode
+		back_size = ["BACK_SIZE", "64"]	# Background mesh: <size> or <width>,<height>
+		back_filtersize = ["BACK_FILTERSIZE", "3"] # Background filter: <size> or <width>,<height>
 
 		# Check Image
-		checkimage_type = ["CHECKIMAGE_TYPE", "NONE"]								# can be NONE, BACKGROUND, BACKGROUND_RMS, MINIBACKGROUND, MINIBACK_RMS, -BACKGROUND, FILTERED, OBJECTS, -OBJECTS, SEGMENTATION, or APERTURES
-		checkimage_name = ["CHECKIMAGE_NAME", "check.fits"]							# Filename for the check-image
+		checkimage_type = ["CHECKIMAGE_TYPE", "NONE"] # can be NONE, BACKGROUND, BACKGROUND_RMS, MINIBACKGROUND, MINIBACK_RMS, -BACKGROUND, FILTERED, OBJECTS, -OBJECTS, SEGMENTATION, or APERTURES
+		checkimage_name = ["CHECKIMAGE_NAME", "check.fits"] # Filename for the check-image
 
 		# Memory (change with caution!)
-		memory_objstack = ["MEMORY_OBJSTACK", "3000"]								# number of objects in stack
-		memory_pixstack = ["MEMORY_PIXSTACK", "300000"]								# number of pixels in stack
-		memory_bufsize = ["MEMORY_BUFSIZE", "1024"]									# number of lines in buffer
+		memory_objstack = ["MEMORY_OBJSTACK", "3000"] # number of objects in stack
+		memory_pixstack = ["MEMORY_PIXSTACK", "300000"]	# number of pixels in stack
+		memory_bufsize = ["MEMORY_BUFSIZE", "1024"] # number of lines in buffer
 
 		# ASSOCiation
-		assoc_name = ["ASSOC_NAME", "sky.list"]										# name of the ASCII file to ASSOCiate
-		assoc_data = ["ASSOC_DATA", "2", "3", "4"]									# columns of the data to replicate (0=all)
-		assoc_params = ["ASSOC_PARAMS", "2", "3", "4"]								# columns of xpos,ypos[,mag]
-		assoc_radius = ["ASSOC_RADIUS", "2.0"]										# cross-matching radius (pixels)
-		assoc_type = ["ASSOC_TYPE", "NEAREST"]										# ASSOCiation method: FIRST, NEAREST, MEAN, MAG_MEAN, SUM, MAG_SUM, MIN or MAX
-		assocselec_type = ["ASSOCSELEC_TYPE", "MATCHED"]							# ASSOC selection type: ALL, MATCHED or -MATCHED
+		assoc_name = ["ASSOC_NAME", "sky.list"]	# name of the ASCII file to ASSOCiate
+		assoc_data = ["ASSOC_DATA", "2", "3", "4"] # columns of the data to replicate (0=all)
+		assoc_params = ["ASSOC_PARAMS", "2", "3", "4"] # columns of xpos,ypos[,mag]
+		assoc_radius = ["ASSOC_RADIUS", "2.0"] # cross-matching radius (pixels)
+		assoc_type = ["ASSOC_TYPE", "NEAREST"] # ASSOCiation method: FIRST, NEAREST, MEAN, MAG_MEAN, SUM, MAG_SUM, MIN or MAX
+		assocselec_type = ["ASSOCSELEC_TYPE", "MATCHED"] # ASSOC selection type: ALL, MATCHED or -MATCHED
 
 		# Miscellaneous
-		verbose_type = ["VERBOSE_TYPE", "NORMAL"]									# can be QUIET, NORMAL or FULL
-		header_suffix = ["HEADER_SUFFIX", ".head"]									# Filename extension for additional headers
-		write_xml = ["WRITE_XML", "N"]												# Write XML file (Y/N)?
-		xml_name = ["XML_NAME", "sex.xml"]											# Filename for XML output
-		xsl_url = ["XSL_URL", "file:///usr/local/share/sextractor/sextractor.xsl"]	# Filename for XSL style-sheet
+		verbose_type = ["VERBOSE_TYPE", "NORMAL"] # can be QUIET, NORMAL or FULL
+		header_suffix = ["HEADER_SUFFIX", ".head"] # Filename extension for additional headers
+		write_xml = ["WRITE_XML", "N"]# Write XML file (Y/N)?
+		xml_name = ["XML_NAME", "sex.xml"] # Filename for XML output
+		xsl_url = ["XSL_URL", "file:///usr/local/share/sextractor/sextractor.xsl"] # Filename for XSL style-sheet
 
 		config_parameters = [catalog_name, catalog_type, parameters_name, detect_type, detect_minarea, detect_thresh,
-							analysis_thresh, detection_filter, detection_filter_name, deblend_nthresh, deblend_mincont, 
-							clean, clean_param, weight_type, weight_image, flag_image, flag_type, phot_apertures, 
-							phot_autoparams, phot_petroparams, phot_autoapers, satur_level, satur_key, mag_zeropoint,
-							mag_gamma, gain, gain_key, pixel_scale, seeing_fwhm, starnnw_name, back_type, back_value,
-							back_size, back_filtersize, checkimage_type, checkimage_name, memory_objstack, memory_pixstack,
-							memory_bufsize, assoc_name, assoc_data, assoc_params, assoc_radius, assoc_type, assocselec_type,
-							verbose_type, header_suffix, write_xml, xml_name, xsl_url]
+					analysis_thresh, detection_filter, detection_filter_name, deblend_nthresh, deblend_mincont, 
+					clean, clean_param, weight_type, weight_image, flag_image, flag_type, phot_apertures, 
+					phot_autoparams, phot_petroparams, phot_autoapers, satur_level, satur_key, mag_zeropoint,
+					mag_gamma, gain, gain_key, pixel_scale, seeing_fwhm, starnnw_name, back_type, back_value,
+					back_size, back_filtersize, checkimage_type, checkimage_name, memory_objstack, memory_pixstack,
+					memory_bufsize, assoc_name, assoc_data, assoc_params, assoc_radius, assoc_type, assocselec_type,
+					verbose_type, header_suffix, write_xml, xml_name, xsl_url]
 
 		default_sex = open("default.sex", "w")
 		for param in config_parameters:
@@ -330,7 +320,7 @@ class Pipeline:
 		nnw_22 = " 1.00000e+00"
 
 		default_nnw_lines = [nnw_1, nnw_2, nnw_3, nnw_4, nnw_5, nnw_6, nnw_7, nnw_8, nnw_9, nnw_10, nnw_11,
-							nnw_12, nnw_13, nnw_14, nnw_15, nnw_16, nnw_17, nnw_18, nnw_19, nnw_20, nnw_21, nnw_22]
+					nnw_12, nnw_13, nnw_14, nnw_15, nnw_16, nnw_17, nnw_18, nnw_19, nnw_20, nnw_21, nnw_22]
 
 		default_nnw = open("default.nnw", "w")
 		for line in default_nnw_lines:
@@ -342,9 +332,34 @@ class Pipeline:
 		subprocess.run(["rm", "default.conv"])
 		subprocess.run(["rm", "default.nnw"])
 
-		return 
+		frame_list = []
+		seeing_list = []
+		step_list = []
 
-	def plate_solve(self, object_frame, output_dir, search=None):
+		catalog = open(object_name + ".cat")
+
+		for line in catalog:
+			line = line.split()
+
+			if line[0] == "#":
+				pass
+
+			else:
+				frame = int(line[0])
+				frame_list.append(frame)
+
+				seeing = float(line[7]) * 3600
+				seeing_list.append(seeing)
+
+				step = float(line[5])
+				step_list.append(step)
+
+		mean_seeing = np.mean(seeing_list)
+		mean_step = np.mean(step_list)
+
+		return mean_seeing, mean_step
+
+	def plate_solve(self, object_frame, search=None):
 
 		print("Defining astrometry file names")
 		file_name = object_frame[:-4]
@@ -358,7 +373,7 @@ class Pipeline:
 		file_xyls = file_name + "-indx.xyls"
 
 		if search == None:
-			print("Running astrometry on", object_frame)
+			print("Running unconstrained astrometry on", object_frame)
 			subprocess.run(["solve-field", "--no-plots", object_frame])
 
 		else:
@@ -366,7 +381,7 @@ class Pipeline:
 			dec = search[1]
 			radius = search[2]
 
-			print("Running astrometry on", object_frame)
+			print("Running constrained", (ra, dec, radius), "astrometry on", object_frame)
 			subprocess.run(["solve-field", "--no-plots", object_frame, "--ra", ra, "--dec", dec, "--radius", radius])
 
 		print("Cleaning up")
@@ -397,7 +412,7 @@ class Pipeline:
 		print("Subtracting master dark from object")
 		reduced_obj_frame_data = obj_frame_data - master_dark_data
 
-		# Divide by flatfield
+		# Flatfield correct
 		print("Opening flatfield frame")
 		flatfield = fits.open(flatfield)
 		flatfield_data = flatfield[0].data
@@ -444,39 +459,58 @@ if __name__ == "__main__":
 	print("Running CAL test")
 	start_time = time.time()
 
+	print("Reading configuration file")
 	config = configparser.ConfigParser()
 	config.read("config.ini")
 
+	print("Initializing pipeline")
 	pipeline = Pipeline()
 
-	"""
-	# Combine flat darks
+	# --- Combine flat darks
 	dark_flat_dir = config["Test"]["dark_flat_dir"]
 	dark_flat_path = dark_flat_dir + "/master-dark.fit"
 
-	if os.path.isfile(dark_flat_dir + "/master-dark.fit"):
-		print("Reading pre-existing master dark")
-		master_dark_flat = fits.open(dark_flat_dir + "/master-dark.fit")
+	if os.path.isfile(dark_flat_path):
+		print("Reading pre-existing master (flat) dark")
+		master_dark_flat = fits.open(dark_flat_path)
 
 	else:
-		master_dark_flat = pipeline.combine_darks(dark_flat_dir)
-		print("Writing master dark to output directory")
+		os.chdir(dark_flat_dir)
+		dark_flat_list = []
+
+		for item in glob.glob("*.fit"):
+			print("Adding", item, "to dark (flat) list")
+			dark_flat_list.append(item)
+
+		master_dark_flat = pipeline.combine_darks(dark_flat_list, method="median")
+
+		print("Writing master (flat) dark to output")
 		ccdproc.fits_ccddata_writer(master_dark_flat, dark_flat_path, overwrite=True)
 
-	# Combine object darks
+	# --- Combine object darks
 	dark_obj_dir = config["Test"]["dark_obj_dir"]
 	dark_obj_path = dark_obj_dir + "/master-dark.fit"
 
 	if os.path.isfile(dark_obj_path):
-		print("Reading pre-existing master dark")
+
+		print("Reading pre-existing master (object) dark")
 		master_dark_obj = fits.open(dark_obj_path)
 
 	else:
-		master_dark_obj = pipeline.combine_darks(dark_obj_dir)
-		print("Writing master dark to output directory")
+
+		os.chdir(dark_obj_dir)
+		dark_obj_list = []
+
+		for item in glob.glob("*.fit"):
+			print("Adding", item, "to dark (object) list")
+			dark_obj_list.append(item)
+
+		master_dark_obj = pipeline.combine_darks(dark_obj_list)
+
+		print("Writing master (object) dark to output")
 		ccdproc.fits_ccddata_writer(master_dark_obj, dark_obj_path, overwrite=True)
 
-	# Combine flats
+	# --- Combine flats
 	flat_dir = config["Test"]["flat_dir"]
 	flat_path = flat_dir + "/flatfield.fit"
 
@@ -485,35 +519,59 @@ if __name__ == "__main__":
 		flatfield = fits.open(flat_path)
 
 	else:
-		flatfield = pipeline.combine_flats(flat_dir, dark_flat_dir)
-		print("Writing flatfield to output directory")
+		print("Opening master dark (flat) frame")
+		master_dark = ccdproc.fits_ccddata_reader(dark_flat_path)
+
+		os.chdir(flat_dir)
+		flat_list = []
+
+		for item in glob.glob("*.fit"):
+			print("Adding", item, "to flat list")
+			flat_list.append(item)
+
+		flatfield = pipeline.combine_flats(flat_list, master_dark, method="median")
+
+		print("Writing flatfield to output")
 		ccdproc.fits_ccddata_writer(flatfield, flat_path, overwrite=True)
 
-	# Reduce objects
+	# --- Reduce objects
 	obj_dir = config["Test"]["obj_dir"]
 	
 	os.chdir(obj_dir)
 	obj_list = []
+
 	for item in glob.glob("*.fit"):
 
 		if "reduced" in item:
-			print("Not adding item", item, "to reduction queue")
+			print("Not adding", item, "to reduction queue")
+
+		elif "wcs-reduced" in item:
+			print("Not adding", item, "to reduction queue")
+
+		elif "a-wcs-reduced" in item:
+			print("Not adding", item, "to reduction queue")
+
+		elif "stack" in item:
+			print("Not adding", item, "to reduction queue")
 
 		else:
 			print("Adding", item, "to reduction queue")
 			obj_list.append(item)
 
 	obj_list = sorted(obj_list)
+
 	for obj in obj_list:
 
 		if os.path.isfile("reduced-" + obj):
 			print("Skipping reduction on", obj)
 
 		else:
-			reduced_frame = pipeline.reduce_object(obj, flat_path, dark_obj_path)
+			reduced_frame = pipeline.reduce_object(obj, flat_path, dark_obj_path, bkg_method="mesh")
+
+			print("Writing", obj, "to output")
 			reduced_frame.writeto(obj_dir + "/reduced-" + obj, overwrite=True)
 
-	# Plate solve objects
+	# --- Plate solve objects
 	plate_solve_list = []
 
 	for item in glob.glob("reduced*.fit"):
@@ -528,10 +586,9 @@ if __name__ == "__main__":
 			print("Skipping plate solve on", obj)
 
 		else:
-			pipeline.plate_solve(obj, obj_dir, search=["16:53:52.22", "39:45:36.61", "1"])
-			#pipeline.plate_solve(obj, obj_dir)
+			pipeline.plate_solve(obj, search=["03:27:58.43", "-37:08:59", "1"])
 
-	# Align objects
+	# --- Align objects
 	align_list = []
 
 	for item in glob.glob("wcs*.fit"):
@@ -540,28 +597,27 @@ if __name__ == "__main__":
 
 	align_list = sorted(align_list)
 
-	pipeline.align(align_list, obj_dir, method="reproject")
+	pipeline.align_objects(align_list, obj_dir, method="reproject")
 
-	# Stack aligned objects
+	# --- Stack aligned objects
 	stack_list = []
 
-	for item in glob.glob("a-wcs-reduced-*.fit"):
-		print("Adding", item, "to stack queue")
-		stack_list.append(item)
+	if os.path.isfile("stack.fit"):
+		print("Skipping stack of aligned objects")
 
-	stack_list = sorted(stack_list)
+	else:
+		for item in glob.glob("a-wcs-reduced-*.fit"):
+			print("Adding", item, "to stack queue")
+			stack_list.append(item)
 
-	stack = pipeline.combine_stack(obj_dir)
-	print("Writing stack to output directory")
-	ccdproc.fits_ccddata_writer(stack, obj_dir + "/stack.fit", overwrite=True)
+		stack_list = sorted(stack_list)
 
-	# Run photometry on stack
-	#sources = pipeline.detect_sources(stack)
-	#print(sources)
+		stack = pipeline.combine_stack(stack_list)
 
-	"""
+		print("Writing stack to output directory")
+		ccdproc.fits_ccddata_writer(stack, obj_dir + "/stack.fit", overwrite=True)
 
-	pipeline.extract_sources("stack.fit")
+	mean_seeing, mean_step = pipeline.extract_sources("stack.fit")
 
 	end_time = time.time()
 	total_time = end_time - start_time
