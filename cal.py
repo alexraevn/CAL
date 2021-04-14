@@ -151,7 +151,7 @@ class Pipeline:
 
 		if method == "median":
 			print("Combining stack by median")
-			stack = ccdproc.combine(stack_list, method="median", unit="adu", mem_limit=6e9)
+			stack = ccdproc.combine(stack_list, method="median", unit="adu", mem_limit=2e9)
 
 		elif method == "mean":
 			print("Combining stack by mean")
@@ -589,7 +589,7 @@ if __name__ == "__main__":
 			print("Skipping plate solve on", obj)
 
 		else:
-			pipeline.plate_solve(obj, search=["03:27:58.43", "-37:08:59", "1"])
+			pipeline.plate_solve(obj, search=["00:40:19.748", "40:49:35.98", "1"])
 
 	# --- Align objects
 	align_list = []
@@ -639,13 +639,13 @@ if __name__ == "__main__":
 		image_header = image[0].header
 
 		image_dateobs = image_header["DATE-OBS"]
-		image_timeobs = image_header["TIME-OBS"]
+		#image_timeobs = image_header["TIME-OBS"]
 		image_jd = image_header["JD"]
 		image_ra = image_header["CRVAL1"]
 		image_dec = image_header["CRVAL2"]
 
 		# --- Time
-		observation_time = Time(image_dateobs + " " + image_timeobs)
+		observation_time = Time(image_dateobs) #+ " " + image_timeobs)
 		time_list.append(image_jd)
 
 		# --- Air mass
